@@ -31,6 +31,12 @@ import {
   getTodayString,
   normalizeRoutineState,
 } from "./routineData";
+import { fromDailyRoutineLog, toDailyRoutineLog } from "./lib/routineMappers";
+import {
+  createRoutineBackupData,
+  isRoutineBackupData,
+  normalizeRoutineBackupData,
+} from "./lib/routineStorageFormat";
 import {
   FoodFormState,
   HYDRATION_SAFE_DATE,
@@ -49,16 +55,16 @@ import {
   formatArchiveDate,
   formatLongDate,
   getAverageHealthLabel,
+  getFrequentNutritionFoods,
   getOverallStatus,
   getPreviousDateString,
+  getTodayCompletionStatus,
   hasAnyRoutineEntry,
   hasNutritionEntry,
   isDetailSectionId,
   generateCustomFoodId,
 } from "./lib/dashboard-helpers";
 import {
-  BACKUP_FILE_APP_ID,
-  BACKUP_FILE_VERSION,
   CUSTOM_FOODS_STORAGE_KEY,
   DETAIL_STORAGE_KEY,
   FAVORITE_FOODS_STORAGE_KEY,
@@ -70,7 +76,6 @@ import {
   loadStoredRecords,
   normalizeStoredCustomFoods,
   normalizeStoredFavoriteFoodIds,
-  normalizeStoredProfile,
   normalizeStoredRecords,
   parseImportedBackup,
 } from "./lib/dashboard-storage";
@@ -79,6 +84,7 @@ import { WeeklySummarySection } from "./components/dashboard/WeeklySummarySectio
 import { HistorySection } from "./components/dashboard/HistorySection";
 import { DataManagementPanel } from "./components/dashboard/DataManagementPanel";
 import { HobbyCard } from "./components/dashboard/HobbyCard";
+import { MobileBottomNav } from "./components/dashboard/MobileBottomNav";
 import { SectionCard } from "./components/dashboard/SectionCard";
 import {
   EmptyStatePanel,
@@ -86,8 +92,44 @@ import {
   WeeklyAverageCardData,
   WeeklyInsightChipData,
 } from "./components/dashboard/Primitives";
+import type { RoutineBackupData } from "./types/routine";
 
 const WEEKLY_SUMMARY_STORAGE_KEY = "routine-weekly-summary-open";
+const QUICK_ADD_FOOD_LIMIT = 12;
+
+function isRecordObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isRoutineBackupCandidate(value: unknown) {
+  return isRecordObject(value) && (isRoutineBackupData(value) || Array.isArray(value.logs));
+}
+
+function mapBackupCustomFoodsToNutritionFoods(customFoods: RoutineBackupData["customFoods"]) {
+  return normalizeStoredCustomFoods(
+    customFoods.map((food) => ({
+      id: food.id,
+      label: food.label,
+      proteinGrams: food.proteinGrams,
+      unitLabel: food.unitLabel,
+      category: food.category,
+      isCustom: true,
+      isArchived: food.archived,
+      archivedAt: food.archivedAt,
+    })),
+  );
+}
+
+function mapRoutineBackupToRecords(backup: RoutineBackupData, customFoods: readonly NutritionFood[]) {
+  return backup.logs.reduce<DailyRecords>((nextRecords, log) => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(log.date)) {
+      return nextRecords;
+    }
+
+    nextRecords[log.date] = fromDailyRoutineLog(log, customFoods);
+    return nextRecords;
+  }, {});
+}
 
 function copyNutritionQuantities(
   targetRoutine: RoutineState,
@@ -104,16 +146,6 @@ function copyNutritionQuantities(
 
   return nextRoutine;
 }
-
-type BackupPayload = {
-  app: typeof BACKUP_FILE_APP_ID;
-  version: number;
-  exportedAt: string;
-  records: DailyRecords;
-  customFoods: NutritionFood[];
-  profile: UserProfile;
-  favoriteFoodIds: string[];
-};
 
 export default function Home() {
   const [hasHydrated, setHasHydrated] = useState(false);
@@ -133,6 +165,7 @@ export default function Home() {
   const [isWeeklySummaryOpen, setIsWeeklySummaryOpen] = useState(false);
   const [isArchivedFoodsOpen, setIsArchivedFoodsOpen] = useState(false);
   const importFileInputRef = useRef<HTMLInputElement | null>(null);
+  const weeklySummarySectionRef = useRef<HTMLDivElement | null>(null);
   const detailSectionRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -227,11 +260,21 @@ export default function Home() {
     () => normalizeRoutineState(records[selectedDate] ?? defaultState, customFoods),
     [customFoods, records, selectedDate],
   );
+  const todayDate = hasHydrated ? getTodayString() : HYDRATION_SAFE_DATE;
+  const todayRoutine = useMemo(
+    () => normalizeRoutineState(records[todayDate] ?? defaultState, customFoods),
+    [customFoods, records, todayDate],
+  );
   const visibleCustomFoods = useMemo(
     () => customFoods.filter((food) => !food.isArchived || Number(currentRoutine[food.id] ?? 0) > 0),
     [currentRoutine, customFoods],
   );
+  const todayVisibleCustomFoods = useMemo(
+    () => customFoods.filter((food) => !food.isArchived || Number(todayRoutine[food.id] ?? 0) > 0),
+    [customFoods, todayRoutine],
+  );
   const visibleNutritionFoods = useMemo(() => getNutritionFoods(visibleCustomFoods), [visibleCustomFoods]);
+  const todayNutritionFoods = useMemo(() => getNutritionFoods(todayVisibleCustomFoods), [todayVisibleCustomFoods]);
   const routineSectionsWithNutrition = useMemo(() => getRoutineSections(visibleCustomFoods), [visibleCustomFoods]);
   const favoriteFoods = useMemo(
     () =>
@@ -241,6 +284,9 @@ export default function Home() {
       }),
     [activeNutritionFoods, favoriteFoodIds],
   );
+  const quickAddFoods = useMemo(() => {
+    return getFrequentNutritionFoods(records, activeNutritionFoods, { limit: QUICK_ADD_FOOD_LIMIT });
+  }, [activeNutritionFoods, records]);
   const recentFoods = useMemo(() => {
     const usageMap = new Map<
       string,
@@ -648,21 +694,18 @@ export default function Home() {
   const exportAllData = () => {
     const exportRecordCount = Object.keys(records).length;
     const isMostlyEmpty = exportRecordCount === 0 && customFoods.length === 0 && favoriteFoodIds.length === 0;
-    const payload: BackupPayload = {
-      app: BACKUP_FILE_APP_ID,
-      version: BACKUP_FILE_VERSION,
-      exportedAt: new Date().toISOString(),
-      records: normalizeStoredRecords(records, customFoods),
-      customFoods: normalizeStoredCustomFoods(customFoods),
-      profile: normalizeStoredProfile(profile),
-      favoriteFoodIds: normalizeStoredFavoriteFoodIds(favoriteFoodIds, activeNutritionFoods),
-    };
+    const normalizedRecords = normalizeStoredRecords(records, customFoods);
+    const logs = Object.entries(normalizedRecords)
+      .sort(([leftDate], [rightDate]) => leftDate.localeCompare(rightDate))
+      .map(([date, routine]) => toDailyRoutineLog(routine, date, customFoods));
+    const payload = createRoutineBackupData(logs, normalizeStoredCustomFoods(customFoods));
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
     const downloadUrl = URL.createObjectURL(blob);
     const link = document.createElement("a");
+    const fileDate = getTodayString();
 
     link.href = downloadUrl;
-    link.download = `routine-backup-${selectedDate}.json`;
+    link.download = `routine-backup-${fileDate}.json`;
     link.click();
     URL.revokeObjectURL(downloadUrl);
 
@@ -670,7 +713,7 @@ export default function Home() {
       tone: isMostlyEmpty ? "neutral" : "success",
       text: isMostlyEmpty
         ? "내보낼 데이터가 많지 않지만 현재 상태를 백업했습니다."
-        : `${selectedDate} 기준 백업 파일을 내보냈습니다.`,
+        : `${fileDate} 기준 백업 파일을 내보냈습니다.`,
     });
   };
 
@@ -694,6 +737,41 @@ export default function Home() {
 
       const rawText = await file.text();
       const parsed = JSON.parse(rawText) as unknown;
+
+      if (isRoutineBackupCandidate(parsed)) {
+        const backup = normalizeRoutineBackupData(parsed);
+        const importedCustomFoods = mapBackupCustomFoodsToNutritionFoods(backup.customFoods);
+        const importedRecords = mapRoutineBackupToRecords(backup, importedCustomFoods);
+        const importedRecordCount = Object.keys(importedRecords).length;
+        const shouldImport = window.confirm(
+          `현재 루틴 기록을 이 백업으로 교체할까요?\n기록 ${importedRecordCount}일, 커스텀 음식 ${importedCustomFoods.length}개를 불러옵니다.`,
+        );
+
+        if (!shouldImport) {
+          setDataManagementMessage({
+            tone: "neutral",
+            text: "데이터 불러오기를 취소했습니다.",
+          });
+          return;
+        }
+
+        setCustomFoods(importedCustomFoods);
+        setRecords(importedRecords);
+        setFavoriteFoodIds((previous) =>
+          normalizeStoredFavoriteFoodIds(previous, getActiveNutritionFoods(importedCustomFoods)),
+        );
+        closeFoodForm();
+        setNutritionMessage(null);
+        setDataManagementMessage({
+          tone: "success",
+          text:
+            importedRecordCount > 0
+              ? `${importedRecordCount}일치 데이터를 불러왔습니다.`
+              : "데이터를 불러왔습니다. 기록은 아직 없습니다.",
+        });
+        return;
+      }
+
       const result = parseImportedBackup(parsed);
 
       if (!result.ok) {
@@ -794,6 +872,32 @@ export default function Home() {
     });
   };
 
+  const scrollToWeeklySummarySection = () => {
+    if (!weeklySummarySectionRef.current) {
+      return;
+    }
+
+    weeklySummarySectionRef.current.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  };
+
+  const handleMobileNavSelect = (target: DetailSectionId | "report") => {
+    if (target === "report") {
+      scrollToWeeklySummarySection();
+      return;
+    }
+
+    setActiveDetail(target);
+
+    if (typeof window !== "undefined") {
+      window.requestAnimationFrame(() => {
+        scrollToDetailSection();
+      });
+    }
+  };
+
   const handleSelectArchiveDate = (date: string) => {
     setSelectedDate(date);
 
@@ -835,6 +939,7 @@ export default function Home() {
   const totalRoutineItems = getTotalRoutineItemCount(visibleCustomFoods);
   const archiveTotalRoutineItems = getTotalRoutineItemCount(customFoods);
   const completedCount = getCompletedItemCount(currentRoutine, visibleCustomFoods);
+  const todayCompletionStatus = getTodayCompletionStatus(todayRoutine, todayNutritionFoods);
   const proteinSummary: ProteinSummary = {
     intake: proteinIntake,
     recommended: recommendedProtein,
@@ -1108,12 +1213,12 @@ export default function Home() {
   const hydratedSelectedDate = hasHydrated ? selectedDate : "";
   const hydratedSelectedDateLabel = hasHydrated ? selectedDate : "";
   const hydratedSelectedDateDetail = hasHydrated ? formatLongDate(selectedDate) : "";
-  const hydratedTodayDate = hasHydrated ? getTodayString() : HYDRATION_SAFE_DATE;
+  const hydratedTodayDate = todayDate;
   const hydratedSevenDayRange = hasHydrated ? `${recentSevenDaySummary.startDate} - ${recentSevenDaySummary.endDate}` : "";
   const currentDateHasRecord = hasAnyRoutineEntry(currentRoutine);
 
   return (
-    <main className="dashboard-shell relative min-h-screen overflow-hidden px-4 py-5 text-slate-900 sm:px-6 sm:py-8">
+    <main className="dashboard-shell relative min-h-screen overflow-hidden px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-5 text-slate-900 sm:px-6 sm:py-8">
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.62),transparent_34%),linear-gradient(180deg,#f7f7f8_0%,#eef1f4_100%)]" />
 
       <div className="mx-auto max-w-[1120px] space-y-5 sm:space-y-6">
@@ -1142,15 +1247,59 @@ export default function Home() {
           priorityDetail={todayPriority.detail}
         />
 
-        <WeeklySummarySection
-          rangeLabel={hydratedSevenDayRange}
-          cards={weeklyAverageCards}
-          insightChips={weeklyInsightChips}
-          pending={!hasHydrated}
-          loggedDays={recentSevenDaySummary.loggedDays}
-          isOpen={isWeeklySummaryOpen}
-          onToggleOpen={() => setIsWeeklySummaryOpen((previous) => !previous)}
-        />
+        <section className="glass-panel rounded-[28px] p-4 sm:p-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">오늘 기록 상태</p>
+              <h2 className="mt-1 text-lg font-semibold tracking-[-0.04em] text-slate-950">
+                오늘 {todayCompletionStatus.totalCount}개 중 {todayCompletionStatus.completedCount}개 기록 완료
+              </h2>
+              <p className="mt-1 text-sm text-slate-500">{todayCompletionStatus.message}</p>
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {todayCompletionStatus.items.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => handleMobileNavSelect(item.id)}
+                  className={`min-w-[92px] rounded-[18px] border px-3 py-2.5 text-left transition hover:-translate-y-0.5 hover:border-slate-300 hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/10 active:translate-y-0 ${
+                    item.completed
+                      ? "border-slate-300 bg-slate-50 text-slate-950 ring-1 ring-slate-900/10"
+                      : "border-slate-200/80 bg-white/84 text-slate-400"
+                  }`}
+                  aria-label={`${item.label} 상세 기록으로 이동`}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-medium">{item.label}</span>
+                    <span
+                      className={`flex h-5 w-5 items-center justify-center rounded-full border text-[11px] ${
+                        item.completed
+                          ? "border-slate-900 bg-slate-900 text-white"
+                          : "border-slate-200 bg-white text-slate-300"
+                      }`}
+                      aria-hidden="true"
+                    >
+                      {item.completed ? "✓" : ""}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-[11px]">{item.completed ? "완료" : "기록하기"}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <div ref={weeklySummarySectionRef} className="scroll-mt-8 sm:scroll-mt-6">
+          <WeeklySummarySection
+            rangeLabel={hydratedSevenDayRange}
+            cards={weeklyAverageCards}
+            insightChips={weeklyInsightChips}
+            pending={!hasHydrated}
+            loggedDays={recentSevenDaySummary.loggedDays}
+            isOpen={isWeeklySummaryOpen}
+            onToggleOpen={() => setIsWeeklySummaryOpen((previous) => !previous)}
+          />
+        </div>
 
         <section className="space-y-3">
           <div className="flex items-end justify-between gap-4">
@@ -1179,7 +1328,7 @@ export default function Home() {
 
         <section
           ref={detailSectionRef}
-          className="glass-panel rounded-[32px] p-5 scroll-mt-5 sm:p-6 sm:scroll-mt-6"
+          className="glass-panel rounded-[32px] p-5 scroll-mt-8 sm:p-6 sm:scroll-mt-6"
         >
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
@@ -1256,6 +1405,7 @@ export default function Home() {
                 nutritionFoods={visibleNutritionFoods}
                 customFoods={customFoods}
                 favoriteFoodIds={favoriteFoodIds}
+                quickAddFoods={quickAddFoods}
                 favoriteFoods={favoriteFoods}
                 recentFoods={recentFoods}
                 activeCustomFoodCount={activeCustomFoods.length}
@@ -1385,6 +1535,7 @@ export default function Home() {
           }
         }
       `}</style>
+      <MobileBottomNav activeDetail={activeDetail} onSelect={handleMobileNavSelect} />
     </main>
   );
 }

@@ -1,5 +1,91 @@
-import { DetailSectionId, NutritionFood, RoutineState, SectionSummaryItem } from "../routineData";
+import {
+  DetailSectionId,
+  DailyRecords,
+  FaithKey,
+  HobbyKey,
+  NutritionCategory,
+  NutritionFood,
+  RoutineState,
+  SectionSummaryItem,
+  TrainingKey,
+} from "../routineData";
 import { detailSectionOrder } from "./dashboard-config";
+
+const nutritionCategoryOrder = new Map<NutritionCategory, number>([
+  ["protein", 0],
+  ["proteinMeal", 1],
+  ["fruit", 2],
+  ["vegetable", 3],
+  ["processed", 4],
+  ["snack", 5],
+]);
+
+const DEFAULT_FREQUENT_NUTRITION_LOOKBACK_DAYS = 14;
+
+const trainingCompletionKeys = [
+  "runZone2",
+  "runInterval",
+  "runLsd",
+  "runShort",
+  "runMedium",
+  "runLong",
+  "swimLesson",
+  "swimFree",
+  "swimFinDay",
+  "swimOpenWater",
+  "cycleRecovery",
+  "cycleNormal",
+  "cycleHard",
+  "cycleLong",
+  "bodyweightLight",
+  "bodyweightModerate",
+  "bodyweightHigh",
+  "stretching",
+  "recoveryRoutine",
+  "supportWorkout",
+  "plannedRest",
+] as const satisfies readonly TrainingKey[];
+
+const faithCompletionKeys = [
+  "qt",
+  "prayer",
+  "gratitude",
+  "worship",
+  "bsc",
+  "listeningToWord",
+  "godAwareness",
+] as const satisfies readonly FaithKey[];
+
+const hobbyCompletionKeys = [
+  "pianoShort",
+  "pianoPractice",
+  "pianoDeep",
+  "pianoLesson",
+  "vocalWarmup",
+  "vocalPractice",
+  "vocalLesson",
+  "codingShort",
+  "codingWork",
+  "codingDeep",
+] as const satisfies readonly HobbyKey[];
+
+export type TodayCompletionStatusItem = {
+  id: "nutrition" | "training" | "faith" | "hobby";
+  label: string;
+  completed: boolean;
+};
+
+export type TodayCompletionStatus = {
+  items: TodayCompletionStatusItem[];
+  completedCount: number;
+  totalCount: number;
+  message: string;
+};
+
+export type FrequentNutritionFoodOptions = {
+  limit?: number;
+  lookbackDays?: number;
+};
 
 export function isDetailSectionId(value: string): value is DetailSectionId {
   return detailSectionOrder.includes(value as DetailSectionId);
@@ -54,6 +140,82 @@ export function hasNutritionEntry(routine: RoutineState, foods: readonly Nutriti
 
 export function hasAnyRoutineEntry(routine: RoutineState) {
   return Object.values(routine).some((value) => (typeof value === "number" ? value > 0 : Boolean(value)));
+}
+
+export function getTodayCompletionStatus(
+  routine: RoutineState,
+  nutritionFoods: readonly NutritionFood[],
+): TodayCompletionStatus {
+  const items: TodayCompletionStatusItem[] = [
+    {
+      id: "nutrition",
+      label: "식단",
+      completed: hasNutritionEntry(routine, nutritionFoods),
+    },
+    {
+      id: "training",
+      label: "훈련",
+      completed: trainingCompletionKeys.some((key) => Boolean(routine[key])),
+    },
+    {
+      id: "faith",
+      label: "신앙",
+      completed: faithCompletionKeys.some((key) => Boolean(routine[key])),
+    },
+    {
+      id: "hobby",
+      label: "취미",
+      completed: hobbyCompletionKeys.some((key) => Boolean(routine[key])),
+    },
+  ];
+  const completedCount = items.filter((item) => item.completed).length;
+
+  return {
+    items,
+    completedCount,
+    totalCount: items.length,
+    message:
+      completedCount === 0
+        ? "오늘 기록을 시작해보세요"
+        : completedCount === items.length
+          ? "오늘 루틴 기록 완료"
+          : "조금만 더 채우면 좋아요",
+  };
+}
+
+export function getFrequentNutritionFoods(
+  records: DailyRecords,
+  nutritionFoods: readonly NutritionFood[],
+  options: FrequentNutritionFoodOptions = {},
+) {
+  const limit = options.limit ?? nutritionFoods.length;
+  const lookbackDays = options.lookbackDays ?? DEFAULT_FREQUENT_NUTRITION_LOOKBACK_DAYS;
+  const foodOrder = new Map(nutritionFoods.map((food, index) => [food.id, index]));
+  const usageCount = new Map<string, number>();
+
+  for (const date of Object.keys(records).sort().reverse().slice(0, lookbackDays)) {
+    const record = records[date];
+
+    for (const food of nutritionFoods) {
+      if (Number(record?.[food.id] ?? 0) > 0) {
+        usageCount.set(food.id, (usageCount.get(food.id) ?? 0) + 1);
+      }
+    }
+  }
+
+  return [...nutritionFoods]
+    .sort((left, right) => {
+      const usageDifference = (usageCount.get(right.id) ?? 0) - (usageCount.get(left.id) ?? 0);
+      const leftCategoryOrder = nutritionCategoryOrder.get(left.category) ?? nutritionCategoryOrder.size;
+      const rightCategoryOrder = nutritionCategoryOrder.get(right.category) ?? nutritionCategoryOrder.size;
+
+      return (
+        usageDifference ||
+        leftCategoryOrder - rightCategoryOrder ||
+        (foodOrder.get(left.id) ?? 0) - (foodOrder.get(right.id) ?? 0)
+      );
+    })
+    .slice(0, limit);
 }
 
 export function formatAverageValue(value: number, maximumFractionDigits = 1) {

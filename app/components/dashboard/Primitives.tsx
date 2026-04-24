@@ -84,11 +84,11 @@ export function CompactActionButton({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-[18px] border text-left transition ${
+      className={`rounded-[18px] border text-left transition focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/10 ${
         active
           ? `${theme.subtle} border-slate-300 text-slate-900`
           : "border-slate-200/90 bg-white/92 text-slate-700 hover:border-slate-300 hover:bg-white"
-      } ${compact ? "min-h-[42px] px-3.5 py-2 text-sm font-medium" : "min-h-[44px] px-3.5 py-2.5"}`}
+      } ${compact ? "min-h-[44px] px-3.5 py-2 text-sm font-medium" : "min-h-[44px] px-3.5 py-2.5"}`}
     >
       <p
         className={`${compact ? "text-[13px]" : "text-sm"} font-medium tracking-[-0.01em] ${

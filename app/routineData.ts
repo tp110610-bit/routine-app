@@ -1,93 +1,39 @@
-export type NutritionKey =
-  | "greekYogurt"
-  | "banana"
-  | "mealit"
-  | "blackBeanSoyMilk"
-  | "proteinDrink"
-  | "proteinBar"
-  | "nuts"
-  | "chickenBreast"
-  | "chickenFriedRice"
-  | "cherryTomatoes"
-  | "broccoli"
-  | "cucumberCarrot"
-  | "egg"
-  | "ramen";
+import type {
+  ActivityKey,
+  FaithKey,
+  HobbyKey,
+  NutritionCategory,
+  NutritionFood,
+  NutritionFoodId,
+  NutritionKey,
+  RoutineState,
+  TrainingKey,
+} from "./types/routine";
 
-export type TrainingKey =
-  | "runZone2"
-  | "runInterval"
-  | "runLsd"
-  | "runShort"
-  | "runMedium"
-  | "runLong"
-  | "swimLesson"
-  | "swimFree"
-  | "swimFinDay"
-  | "swimOpenWater"
-  | "cycleRecovery"
-  | "cycleNormal"
-  | "cycleHard"
-  | "cycleLong"
-  | "bodyweightLight"
-  | "bodyweightModerate"
-  | "bodyweightHigh"
-  | "stretching"
-  | "recoveryRoutine"
-  | "supportWorkout"
-  | "plannedRest";
-
-export type FaithKey =
-  | "qt"
-  | "prayer"
-  | "gratitude"
-  | "worship"
-  | "bsc"
-  | "listeningToWord"
-  | "godAwareness";
-
-export type HobbyKey =
-  | "pianoShort"
-  | "pianoPractice"
-  | "pianoDeep"
-  | "pianoLesson"
-  | "vocalWarmup"
-  | "vocalPractice"
-  | "vocalLesson"
-  | "codingShort"
-  | "codingWork"
-  | "codingDeep";
-
-export type ActivityKey = TrainingKey | FaithKey | HobbyKey;
-
-export type RoutineState = Record<string, number | boolean> & Record<ActivityKey, boolean>;
-
-export type DailyRecords = {
-  [date: string]: Partial<RoutineState>;
-};
+export type {
+  ActivityKey,
+  CustomFood,
+  DailyRecords,
+  DailyRoutineLog,
+  DietRoutineRecord,
+  FaithKey,
+  FaithRoutineRecord,
+  HobbyKey,
+  HobbyRoutineRecord,
+  NutritionCategory,
+  NutritionFood,
+  NutritionFoodId,
+  NutritionKey,
+  RoutineScores,
+  RoutineState,
+  TrainingKey,
+  TrainingRoutineRecord,
+} from "./types/routine";
 
 export type RoutineSectionId = "nutrition" | "training" | "faith";
 export type TrainingRole = "main" | "strength" | "recovery";
 export type TrainingGroup = "러닝" | "수영" | "사이클" | "맨몸운동" | "회복";
 export type HobbyGroup = "피아노" | "성악" | "코딩";
-export type NutritionCategory =
-  | "protein"
-  | "proteinMeal"
-  | "fruit"
-  | "vegetable"
-  | "processed"
-  | "snack";
-
-export type NutritionFood = {
-  id: string;
-  label: string;
-  proteinGrams: number;
-  unitLabel: string;
-  category: NutritionCategory;
-  isCustom: boolean;
-  isArchived?: boolean;
-  archivedAt?: string;
-};
 
 export type RoutineItem = {
   key: keyof RoutineState;
@@ -215,8 +161,6 @@ export const nutritionKeys = [
   "egg",
   "ramen",
 ] as const satisfies readonly NutritionKey[];
-
-export type NutritionFoodId = NutritionKey | string;
 
 const trainingKeys = [
   "runZone2",
@@ -686,10 +630,12 @@ export const nutritionQuickPresets = [
 ] as const satisfies readonly NutritionQuickPreset[];
 
 export const trainingQuickActions = [
-  { key: "runZone2", label: "존2 러닝" },
-  { key: "swimLesson", label: "수영 강습" },
-  { key: "cycleNormal", label: "일반 라이딩" },
-  { key: "plannedRest", label: "계획 휴식" },
+  { key: "runZone2", label: "러닝" },
+  { key: "swimLesson", label: "수영" },
+  { key: "cycleNormal", label: "사이클" },
+  { key: "bodyweightModerate", label: "근력" },
+  { key: "stretching", label: "스트레칭" },
+  { key: "plannedRest", label: "휴식" },
 ] as const satisfies readonly TrainingQuickAction[];
 
 export const faithQuickActions = [

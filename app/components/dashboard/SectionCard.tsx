@@ -41,6 +41,7 @@ function QuickFoodActions({
   onAddFood,
   onToggleFavoriteFood,
   emphasis = false,
+  wrap = false,
   emptyMessage,
   emptyDetail,
 }: {
@@ -51,6 +52,7 @@ function QuickFoodActions({
   onAddFood: (foodId: NutritionFoodId) => void;
   onToggleFavoriteFood: (foodId: string) => void;
   emphasis?: boolean;
+  wrap?: boolean;
   emptyMessage: string;
   emptyDetail?: string;
 }) {
@@ -64,24 +66,39 @@ function QuickFoodActions({
 
   return (
     <QuickInputGroup title={title} helper="탭하면 +1">
-      <div className="flex gap-2 overflow-x-auto pb-1">
+      <div className={wrap ? "flex flex-wrap gap-2" : "flex gap-2 overflow-x-auto pb-1"}>
         {foods.map((food) => {
           const quantity = Number(routine[food.id] ?? 0);
           const isFavorite = favoriteFoodIds.includes(food.id);
+          const isSelected = quantity > 0;
 
           return (
             <div
               key={food.id}
-              className={`flex min-w-[176px] items-center gap-2 rounded-[18px] border px-3 py-3 ${
-                emphasis ? "border-slate-200 bg-slate-50/70" : "border-slate-200/80 bg-white"
+              className={`flex items-center gap-2 rounded-[18px] border px-3 py-3 transition ${
+                wrap ? "min-w-[150px] flex-1 sm:min-w-[168px] sm:flex-none" : "min-w-[176px]"
+              } ${
+                isSelected
+                  ? "border-slate-300 bg-slate-50 shadow-[0_12px_28px_-24px_rgba(15,23,42,0.35)]"
+                  : emphasis
+                    ? "border-slate-200 bg-slate-50/70"
+                    : "border-slate-200/80 bg-white"
               }`}
             >
               <button
                 type="button"
                 onClick={() => onAddFood(food.id)}
-                className="min-w-0 flex-1 text-left"
+                className="min-h-11 min-w-0 flex-1 rounded-[14px] text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/10"
+                aria-label={`${food.label} 빠른 추가`}
               >
-                <p className="truncate text-sm font-medium text-slate-800">{food.label}</p>
+                <span className="flex min-w-0 items-center gap-2">
+                  <span className="truncate text-sm font-medium text-slate-800">{food.label}</span>
+                  {isSelected ? (
+                    <span className="shrink-0 rounded-full bg-slate-900 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white">
+                      {quantity}
+                    </span>
+                  ) : null}
+                </span>
                 <p className="mt-1 text-[11px] leading-4 text-slate-400">
                   {food.proteinGrams}g · {food.unitLabel}
                   {quantity > 0 ? ` · 현재 ${quantity}` : ""}
@@ -90,7 +107,7 @@ function QuickFoodActions({
               <button
                 type="button"
                 onClick={() => onToggleFavoriteFood(food.id)}
-                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition ${
+                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/10 ${
                   isFavorite
                     ? "border-slate-900 bg-slate-900 text-white"
                     : "border-slate-200 bg-white text-slate-400 hover:border-slate-300 hover:text-slate-700"
@@ -120,6 +137,7 @@ export function SectionCard({
   nutritionFoods,
   customFoods,
   favoriteFoodIds,
+  quickAddFoods,
   favoriteFoods,
   recentFoods,
   activeCustomFoodCount,
@@ -148,6 +166,7 @@ export function SectionCard({
   nutritionFoods: readonly NutritionFood[];
   customFoods: readonly NutritionFood[];
   favoriteFoodIds: readonly string[];
+  quickAddFoods: readonly NutritionFood[];
   favoriteFoods: readonly NutritionFood[];
   recentFoods: readonly NutritionFood[];
   activeCustomFoodCount: number;
@@ -169,6 +188,8 @@ export function SectionCard({
   const progress = (score / maxScore) * 100;
   const dietAssessment = section.id === "nutrition" ? getDietAssessment(routine, customFoods) : null;
   const summaryItems = getDetailReasonItems(section.id, routine, customFoods);
+  const selectedTrainingQuickCount =
+    section.id === "training" ? trainingQuickActions.filter((action) => Boolean(routine[action.key])).length : 0;
 
   return (
     <article className={`glass-panel rounded-[30px] p-5 sm:p-6 ${styles.card}`}>
@@ -241,6 +262,16 @@ export function SectionCard({
           </div>
           <InlineNoticeMessage message={nutritionMessage} />
           <div className="mt-4 space-y-3">
+            <QuickFoodActions
+              title="빠른 추가"
+              foods={quickAddFoods}
+              routine={routine}
+              favoriteFoodIds={favoriteFoodIds}
+              onAddFood={onIncrementNutritionFood}
+              onToggleFavoriteFood={onToggleFavoriteFood}
+              wrap
+              emptyMessage="빠르게 추가할 음식이 없습니다"
+            />
             <QuickFoodActions
               title="즐겨찾기"
               foods={favoriteFoods}
@@ -393,18 +424,36 @@ export function SectionCard({
 
       {section.id === "training" ? (
         <div className="mt-5">
-          <QuickInputGroup title="원탭 훈련" helper="바로 체크">
+          <QuickInputGroup
+            title="훈련 프리셋"
+            helper={selectedTrainingQuickCount > 0 ? `오늘 훈련 ${selectedTrainingQuickCount}개 완료` : "빠른 체크"}
+          >
             <div className="flex flex-wrap gap-2">
-              {trainingQuickActions.map((action) => (
-                <CompactActionButton
-                  key={action.key}
-                  label={action.label}
-                  active={Boolean(routine[action.key])}
-                  theme={styles}
-                  compact
-                  onClick={() => onToggleActivity(action.key, !routine[action.key])}
-                />
-              ))}
+              {trainingQuickActions.map((action) => {
+                const isChecked = Boolean(routine[action.key]);
+
+                return (
+                  <button
+                    key={action.key}
+                    type="button"
+                    onClick={() => onToggleActivity(action.key, !routine[action.key])}
+                    className={`flex min-h-[44px] min-w-[104px] flex-1 items-center justify-between gap-2 rounded-[18px] border px-3.5 py-2.5 text-left text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/10 sm:flex-none ${
+                      isChecked
+                        ? "border-slate-300 bg-slate-50 text-slate-950 ring-1 ring-slate-900/10"
+                        : "border-slate-200/90 bg-white/92 text-slate-700 hover:border-slate-300 hover:bg-white"
+                    }`}
+                    aria-pressed={isChecked}
+                    aria-label={`${action.label} 훈련 빠른 체크`}
+                  >
+                    <span>{action.label}</span>
+                    {isChecked ? (
+                      <span className="rounded-full bg-slate-900 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white">
+                        완료
+                      </span>
+                    ) : null}
+                  </button>
+                );
+              })}
             </div>
           </QuickInputGroup>
         </div>
