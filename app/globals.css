@@ -1,0 +1,143 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f4f4f5;
+  --foreground: #1f2937;
+  --surface: rgba(255, 255, 255, 0.94);
+  --surface-strong: #ffffff;
+  --surface-soft: rgba(255, 255, 255, 0.86);
+  --muted: #6b7280;
+  --ring: rgba(15, 23, 42, 0.12);
+  --border-soft: rgba(226, 232, 240, 0.9);
+  --shadow-soft: 0 24px 48px -42px rgba(15, 23, 42, 0.12);
+  --shadow-card: 0 18px 36px -34px rgba(15, 23, 42, 0.08);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+html {
+  background:
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.92), transparent 42%),
+    linear-gradient(180deg, #f7f7f8 0%, #eef1f4 100%);
+}
+
+body {
+  margin: 0;
+  background: transparent;
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), "Noto Sans KR", -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+  line-height: 1.5;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+::selection {
+  background: rgba(71, 85, 105, 0.18);
+  color: var(--foreground);
+}
+
+.dashboard-shell {
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.88), transparent 30%),
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.56), transparent 24%),
+    linear-gradient(180deg, #f7f7f8 0%, #eef1f4 100%);
+}
+
+.glass-panel {
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: var(--shadow-soft);
+  backdrop-filter: blur(14px);
+}
+
+.soft-panel {
+  border: 1px solid var(--border-soft);
+  background: var(--surface-soft);
+  box-shadow: var(--shadow-card);
+}
+
+.subtle-panel {
+  border: 1px solid rgba(226, 232, 240, 0.76);
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 14px 28px -26px rgba(15, 23, 42, 0.06);
+}
+
+.hero-panel {
+  border: 1px solid rgba(255, 255, 255, 0.92);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(250, 250, 251, 0.94) 100%);
+  box-shadow: 0 28px 56px -42px rgba(15, 23, 42, 0.14);
+}
+
+.metric-pill {
+  border: 1px solid var(--border-soft);
+  background: rgba(248, 250, 252, 0.92);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.score-pill {
+  border: 1px solid var(--border-soft);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 12px 24px -24px rgba(15, 23, 42, 0.08);
+}
+
+.hero-metrics > :nth-child(3),
+.hero-metrics > :nth-child(5) {
+  display: none;
+}
+
+.top-focus-panel .metric-pill,
+.top-focus-panel .score-pill {
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: none;
+}
+
+.top-focus-panel > div:last-child > p:last-child {
+  display: none;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.72;
+}
+
+input[type="date"]:focus-visible,
+button:focus-visible {
+  outline: 2px solid rgba(71, 85, 105, 0.28);
+  outline-offset: 2px;
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
