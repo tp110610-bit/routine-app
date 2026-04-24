@@ -4,6 +4,7 @@ import {
   NutritionFood,
   RoutineState,
   defaultNutritionFoods,
+  getActiveCustomFoods,
   getNutritionFoods,
   normalizeRoutineState,
 } from "../routineData";
@@ -70,6 +71,9 @@ export function normalizeStoredCustomFoods(input: unknown): NutritionFood[] {
       typeof candidate.proteinGrams === "number" && Number.isFinite(candidate.proteinGrams)
         ? Math.max(0, candidate.proteinGrams)
         : null;
+    const isArchived = candidate.isArchived === true;
+    const archivedAt =
+      typeof candidate.archivedAt === "string" && candidate.archivedAt.trim() ? candidate.archivedAt.trim() : undefined;
 
     if (!id || !label || !unitLabel || proteinGrams === null || !isNutritionCategory(candidate.category)) {
       return [];
@@ -89,6 +93,8 @@ export function normalizeStoredCustomFoods(input: unknown): NutritionFood[] {
         unitLabel,
         category: candidate.category,
         isCustom: true,
+        isArchived,
+        archivedAt: isArchived ? archivedAt : undefined,
       },
     ];
   });
@@ -175,7 +181,7 @@ export function parseImportedBackup(input: unknown): BackupParseSuccess | Backup
   const profile = normalizeStoredProfile(rawProfile);
   const favoriteFoodIds = normalizeStoredFavoriteFoodIds(
     input.favoriteFoodIds ?? input[FAVORITE_FOODS_STORAGE_KEY] ?? [],
-    getNutritionFoods(customFoods),
+    getNutritionFoods(getActiveCustomFoods(customFoods)),
   );
   const warnings = [
     input.customFoods === undefined && input[CUSTOM_FOODS_STORAGE_KEY] === undefined ? "커스텀 음식 없음" : null,

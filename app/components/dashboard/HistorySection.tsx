@@ -1,5 +1,6 @@
 import {
   ArchiveSummaryCard,
+  ArchivePlaceholderCard,
   EmptyStatePanel,
   WeeklyAverageCard,
   WeeklyAverageCardData,
@@ -35,7 +36,7 @@ export function HistorySection({
     <section className="glass-panel rounded-[32px] p-5 sm:p-6">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">History</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">기록 아카이브</p>
           <h2 className="text-xl font-semibold tracking-[-0.04em] text-slate-950 sm:text-2xl">기록 보기</h2>
           <p className="mt-1 text-sm text-slate-400">최신순 아카이브와 짧은 회고</p>
         </div>
@@ -54,6 +55,7 @@ export function HistorySection({
               value={card.value}
               detail={card.detail}
               pending={pending}
+              placeholder={card.placeholder}
             />
           ))}
         </div>
@@ -61,10 +63,14 @@ export function HistorySection({
         <div className="rounded-[26px] border border-slate-200/80 bg-white/88 px-4 py-4 sm:px-5">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">Retrospect</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">회고</p>
               <p className="mt-1 text-sm font-medium text-slate-900">최근 흐름 한눈에 보기</p>
             </div>
-            <p className="text-xs text-slate-400">{pending ? "불러오는 중" : rangeLabel}</p>
+            {pending ? (
+              <div aria-hidden="true" className="h-3 w-20 animate-pulse rounded-full bg-slate-200/80" />
+            ) : (
+              <p className="text-xs text-slate-400">{rangeLabel}</p>
+            )}
           </div>
 
           <div className="mt-4 grid gap-2.5 sm:grid-cols-3">
@@ -75,26 +81,28 @@ export function HistorySection({
                 value={chip.value}
                 detail={chip.detail}
                 tone={chip.tone}
+                placeholder={chip.placeholder}
+                pending={pending}
               />
             ))}
           </div>
         </div>
       </div>
 
-      {loggedDays < 2 ? (
+      {!pending && loggedDays < 2 ? (
         <div className="mt-4">
-          <EmptyStatePanel
-            message="비교할 데이터가 부족합니다"
-            detail="최소 2일 이상 기록되면 회고가 더 정확해집니다."
-            compact
-          />
+          <EmptyStatePanel message="회고는 며칠 더 쌓이면 더 또렷해집니다." compact />
         </div>
       ) : null}
 
       {summaries.length === 0 ? (
-        <div className="soft-panel mt-5 rounded-[24px] border-dashed px-5 py-10 text-center">
-          <p className="text-sm text-slate-600">아직 저장된 루틴 기록이 없습니다.</p>
-          <p className="mt-1 text-[12px] text-slate-400">오늘 기록부터 시작해보세요.</p>
+        <div className="mt-5 space-y-3">
+          <div className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <ArchivePlaceholderCard key={`archive-placeholder-${index}`} />
+            ))}
+          </div>
+          {!pending ? <EmptyStatePanel message="첫 기록이 쌓이면 이곳에 차분히 정리됩니다." compact /> : null}
         </div>
       ) : (
         <div className="mt-5 grid gap-2.5 md:grid-cols-2 xl:grid-cols-3">

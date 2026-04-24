@@ -122,6 +122,7 @@ export function SectionCard({
   favoriteFoodIds,
   favoriteFoods,
   recentFoods,
+  activeCustomFoodCount,
   nutritionMessage,
   isFoodFormOpen,
   editingFoodId,
@@ -149,6 +150,7 @@ export function SectionCard({
   favoriteFoodIds: readonly string[];
   favoriteFoods: readonly NutritionFood[];
   recentFoods: readonly NutritionFood[];
+  activeCustomFoodCount: number;
   nutritionMessage: InlineNotice | null;
   isFoodFormOpen: boolean;
   editingFoodId: string | null;
@@ -291,8 +293,8 @@ export function SectionCard({
             </div>
           </QuickInputGroup>
           <div className="mt-4">
-            {customFoods.length > 0 ? (
-              <p className="text-[12px] text-slate-400">커스텀 음식 {customFoods.length}개</p>
+            {activeCustomFoodCount > 0 ? (
+              <p className="text-[12px] text-slate-400">커스텀 음식 {activeCustomFoodCount}개</p>
             ) : (
               <EmptyStatePanel
                 message="커스텀 음식이 없습니다"
@@ -469,7 +471,14 @@ export function SectionCard({
                     </span>
 
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-slate-900">{item.label}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="truncate text-sm font-medium text-slate-900">{item.label}</p>
+                        {matchedFood?.isArchived ? (
+                          <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-medium text-slate-400">
+                            보관됨
+                          </span>
+                        ) : null}
+                      </div>
                       <p className="mt-1 text-xs text-slate-500">{item.note ?? matchedFood?.unitLabel}</p>
                     </div>
                   </label>
@@ -544,7 +553,7 @@ export function SectionCard({
                       onClick={() => onDeleteFood(matchedFood.id)}
                       className="text-xs font-medium text-slate-400 transition hover:text-[#8b5e3c]"
                     >
-                      삭제
+                      목록 제외
                     </button>
                   </div>
                 ) : null}

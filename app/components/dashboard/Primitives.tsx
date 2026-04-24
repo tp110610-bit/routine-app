@@ -7,6 +7,7 @@ export type WeeklyAverageCardData = {
   label: string;
   value: string;
   detail: string;
+  placeholder?: boolean;
 };
 
 export type WeeklyInsightChipData = {
@@ -14,7 +15,12 @@ export type WeeklyInsightChipData = {
   value: string;
   detail?: string;
   tone?: "default" | "caution";
+  placeholder?: boolean;
 };
+
+function SkeletonLine({ className }: { className: string }) {
+  return <div aria-hidden="true" className={`animate-pulse rounded-full bg-slate-200/80 ${className}`} />;
+}
 
 export function CheckIcon() {
   return (
@@ -142,23 +148,34 @@ export function MetricCard({
   value,
   detail,
   strong = false,
+  pending = false,
 }: {
   label: string;
   value: string;
   detail?: string;
   strong?: boolean;
+  pending?: boolean;
 }) {
   return (
     <div
-      className={`rounded-[24px] border px-4 py-4 sm:px-5 ${
+      className={`min-h-[112px] rounded-[24px] border px-4 py-4 sm:px-5 ${
         strong
           ? "border-slate-200 bg-white shadow-[0_18px_36px_-30px_rgba(15,23,42,0.16)]"
           : "border-slate-200/80 bg-white/86 shadow-[0_14px_28px_-28px_rgba(15,23,42,0.12)]"
       }`}
     >
       <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">{label}</p>
-      <p className="mt-2 text-[1.22rem] font-semibold tracking-[-0.04em] text-slate-950">{value}</p>
-      {detail ? <p className="mt-1 text-[11px] leading-5 text-slate-500">{detail}</p> : null}
+      {pending ? (
+        <div className="mt-3 space-y-2">
+          <SkeletonLine className="h-7 w-24" />
+          <SkeletonLine className="h-3 w-32" />
+        </div>
+      ) : (
+        <>
+          <p className="mt-2 text-[1.22rem] font-semibold tracking-[-0.04em] text-slate-950">{value}</p>
+          {detail ? <p className="mt-1 text-[11px] leading-5 text-slate-500">{detail}</p> : null}
+        </>
+      )}
     </div>
   );
 }
@@ -168,17 +185,30 @@ export function WeeklyAverageCard({
   value,
   detail,
   pending = false,
+  placeholder = false,
 }: {
   label: string;
   value: string;
   detail: string;
   pending?: boolean;
+  placeholder?: boolean;
 }) {
   return (
-    <div className="rounded-[22px] border border-slate-200/80 bg-white/90 px-4 py-4 shadow-[0_14px_28px_-28px_rgba(15,23,42,0.12)]">
+    <div className="min-h-[118px] rounded-[22px] border border-slate-200/80 bg-white/90 px-4 py-4 shadow-[0_14px_28px_-28px_rgba(15,23,42,0.12)]">
       <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">{label}</p>
-      <p className="mt-2 text-[1.16rem] font-semibold tracking-[-0.04em] text-slate-950">{value}</p>
-      <p className={`mt-1 text-[11px] leading-5 ${pending ? "text-slate-400" : "text-slate-500"}`}>{detail}</p>
+      {pending ? (
+        <div className="mt-3 space-y-2">
+          <SkeletonLine className="h-6 w-20" />
+          <SkeletonLine className="h-3 w-24" />
+        </div>
+      ) : (
+        <>
+          <p className={`mt-2 text-[1.16rem] font-semibold tracking-[-0.04em] ${placeholder ? "text-slate-400" : "text-slate-950"}`}>
+            {value}
+          </p>
+          <p className={`mt-1 text-[11px] leading-5 ${placeholder ? "text-slate-400" : "text-slate-500"}`}>{detail}</p>
+        </>
+      )}
     </div>
   );
 }
@@ -188,19 +218,49 @@ export function WeeklyInsightChip({
   value,
   detail,
   tone = "default",
-}: WeeklyInsightChipData) {
+  placeholder = false,
+  pending = false,
+}: WeeklyInsightChipData & { pending?: boolean }) {
+  if (pending) {
+    return (
+      <div className="min-h-[90px] rounded-[20px] border border-slate-200/80 bg-white/88 px-3.5 py-3 shadow-[0_12px_24px_-26px_rgba(15,23,42,0.12)]">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">{label}</p>
+        <div className="mt-2.5 space-y-2">
+          <SkeletonLine className="h-4 w-16" />
+          <SkeletonLine className="h-3 w-20" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className={`rounded-[20px] border px-3.5 py-3 shadow-[0_12px_24px_-26px_rgba(15,23,42,0.12)] ${
-        tone === "caution" ? "border-[#dcc9bc] bg-[#fbf7f3]" : "border-slate-200/80 bg-white/88"
+        tone === "caution" && !placeholder ? "border-[#dcc9bc] bg-[#fbf7f3]" : "border-slate-200/80 bg-white/88"
       }`}
     >
-      <p className={`text-[10px] font-semibold uppercase tracking-[0.14em] ${tone === "caution" ? "text-[#8b5e3c]" : "text-slate-400"}`}>
+      <p
+        className={`text-[10px] font-semibold uppercase tracking-[0.14em] ${
+          tone === "caution" && !placeholder ? "text-[#8b5e3c]" : "text-slate-400"
+        }`}
+      >
         {label}
       </p>
-      <p className={`mt-1.5 text-sm font-semibold ${tone === "caution" ? "text-[#8b5e3c]" : "text-slate-900"}`}>{value}</p>
+      <p
+        className={`mt-1.5 text-sm font-semibold ${
+          placeholder ? "text-slate-400" : tone === "caution" ? "text-[#8b5e3c]" : "text-slate-900"
+        }`}
+      >
+        {value}
+      </p>
       {detail ? (
-        <p className={`mt-1 text-[11px] leading-4 ${tone === "caution" ? "text-[#9a7153]" : "text-slate-400"}`}>{detail}</p>
+        <p
+          className={`mt-1 text-[11px] leading-4 ${
+            placeholder ? "text-slate-400" : tone === "caution" ? "text-[#9a7153]" : "text-slate-400"
+          }`}
+        >
+          {detail}
+        </p>
       ) : null}
     </div>
   );
@@ -217,11 +277,11 @@ export function EmptyStatePanel({
 }) {
   return (
     <div
-      className={`rounded-[20px] border border-slate-200/80 bg-slate-50/70 text-center ${
-        compact ? "px-3.5 py-3" : "px-4 py-5"
+      className={`rounded-[24px] border border-slate-200/70 bg-white/72 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.4)] ${
+        compact ? "px-4 py-3.5" : "px-5 py-5"
       }`}
     >
-      <p className="text-sm font-medium text-slate-700">{message}</p>
+      <p className="text-sm font-medium text-slate-600">{message}</p>
       {detail ? <p className="mt-1 text-[12px] leading-5 text-slate-400">{detail}</p> : null}
     </div>
   );
@@ -271,20 +331,32 @@ export function ArchiveSummaryCard({
   totalRoutineItems: number;
   onClick: () => void;
 }) {
+  const isClickable = summary.hasData;
   const statusLabels = [
     isToday ? "오늘" : null,
-    isSelected ? "선택됨" : null,
-    !summary.hasData ? "기록 없음" : null,
+    isSelected ? "보고 있음" : null,
+    !summary.hasData ? "비어 있음" : null,
   ].filter(Boolean);
+  const totalScoreLabel = summary.hasData ? `${summary.totalScore}` : "—";
+  const baseScoreLabel = summary.hasData ? `${summary.baseScore}` : "—";
+  const extraScoreLabel = summary.hasData ? `+${summary.extraScore}` : "—";
+  const proteinLabel = summary.hasData ? `${summary.proteinIntake}g` : "—";
+  const completionLabel = summary.hasData ? `${summary.completionCount}/${totalRoutineItems}` : "—";
+  const nutritionLabel = summary.hasData ? `${summary.nutritionScore}` : "—";
+  const trainingLabel = summary.hasData ? `${summary.trainingScore}` : "—";
+  const faithLabel = summary.hasData ? `${summary.faithScore}` : "—";
 
   return (
     <button
       type="button"
       onClick={onClick}
+      disabled={!isClickable}
       className={`flex h-full min-h-[248px] w-full flex-col rounded-[26px] border px-4 py-4 text-left transition sm:px-4.5 ${
         isSelected
-          ? "border-slate-300 bg-slate-900/[0.96] text-white shadow-[0_22px_38px_-30px_rgba(15,23,42,0.24)]"
-          : "border-slate-200/90 bg-white/92 shadow-[0_14px_28px_-28px_rgba(15,23,42,0.1)] hover:border-slate-300"
+          ? "border-slate-400 bg-slate-900/[0.98] text-white shadow-[0_24px_42px_-32px_rgba(15,23,42,0.28)] ring-1 ring-white/12"
+          : isClickable
+            ? "border-slate-200/90 bg-white/92 shadow-[0_14px_28px_-28px_rgba(15,23,42,0.1)] hover:border-slate-300"
+            : "border-slate-200/70 bg-slate-50/72 text-slate-500 shadow-none"
       }`}
     >
       <div className="flex items-start justify-between gap-3">
@@ -302,9 +374,11 @@ export function ArchiveSummaryCard({
                 className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] ${
                   isSelected
                     ? "border-white/16 bg-white/10 text-white/82"
-                    : label === "기록 없음"
-                      ? "border-slate-200 bg-slate-50 text-slate-500"
-                      : "border-slate-200 bg-white text-slate-600"
+                    : label === "비어 있음"
+                      ? "border-slate-200 bg-slate-50 text-slate-400"
+                      : label === "오늘"
+                        ? "border-slate-200 bg-white text-slate-700"
+                        : "border-slate-200 bg-white text-slate-600"
                 }`}
               >
                 {label}
@@ -319,30 +393,68 @@ export function ArchiveSummaryCard({
           <p className={`text-[11px] font-semibold uppercase tracking-[0.14em] ${isSelected ? "text-white/58" : "text-slate-400"}`}>
             총점
           </p>
-          <p className="mt-2 text-[2rem] font-semibold leading-none tracking-[-0.06em]">{summary.totalScore}</p>
+          <p className={`mt-2 text-[2rem] font-semibold leading-none tracking-[-0.06em] ${summary.hasData ? "" : isSelected ? "text-white/72" : "text-slate-400"}`}>
+            {totalScoreLabel}
+          </p>
         </div>
         <div className="grid min-w-[128px] grid-cols-2 gap-2">
-          <ArchiveMetricCell label="기본" value={`${summary.baseScore}`} subdued={!isSelected} inverted={isSelected} />
-          <ArchiveMetricCell label="Extra" value={`+${summary.extraScore}`} subdued={!isSelected} inverted={isSelected} />
+          <ArchiveMetricCell label="기본" value={baseScoreLabel} subdued={!summary.hasData || !isSelected} inverted={isSelected} />
+          <ArchiveMetricCell label="추가" value={extraScoreLabel} subdued={!summary.hasData || !isSelected} inverted={isSelected} />
         </div>
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-2">
-        <ArchiveMetricCell label="단백질" value={`${summary.proteinIntake}g`} subdued={!summary.hasData} inverted={isSelected} />
+        <ArchiveMetricCell label="단백질" value={proteinLabel} subdued={!summary.hasData} inverted={isSelected} />
         <ArchiveMetricCell
           label="완료"
-          value={`${summary.completionCount}/${totalRoutineItems}`}
+          value={completionLabel}
           subdued={!summary.hasData}
           inverted={isSelected}
         />
       </div>
 
       <div className="mt-3 grid grid-cols-3 gap-2">
-        <ArchiveMetricCell label="식단" value={`${summary.nutritionScore}`} subdued={!summary.hasData} inverted={isSelected} />
-        <ArchiveMetricCell label="훈련" value={`${summary.trainingScore}`} subdued={!summary.hasData} inverted={isSelected} />
-        <ArchiveMetricCell label="신앙" value={`${summary.faithScore}`} subdued={!summary.hasData} inverted={isSelected} />
+        <ArchiveMetricCell label="식단" value={nutritionLabel} subdued={!summary.hasData} inverted={isSelected} />
+        <ArchiveMetricCell label="훈련" value={trainingLabel} subdued={!summary.hasData} inverted={isSelected} />
+        <ArchiveMetricCell label="신앙" value={faithLabel} subdued={!summary.hasData} inverted={isSelected} />
       </div>
     </button>
+  );
+}
+
+export function ArchivePlaceholderCard() {
+  return (
+    <div className="flex min-h-[248px] w-full flex-col rounded-[26px] border border-slate-200/80 bg-white/76 px-4 py-4 shadow-[0_14px_28px_-28px_rgba(15,23,42,0.08)] sm:px-4.5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="space-y-2">
+          <SkeletonLine className="h-4 w-20" />
+          <SkeletonLine className="h-5 w-28" />
+        </div>
+        <SkeletonLine className="h-6 w-14" />
+      </div>
+
+      <div className="mt-5 flex items-end justify-between gap-4">
+        <div className="space-y-2">
+          <SkeletonLine className="h-3 w-10" />
+          <SkeletonLine className="h-9 w-16" />
+        </div>
+        <div className="grid min-w-[128px] grid-cols-2 gap-2">
+          <SkeletonLine className="h-[50px] w-full" />
+          <SkeletonLine className="h-[50px] w-full" />
+        </div>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-2">
+        <SkeletonLine className="h-[50px] w-full" />
+        <SkeletonLine className="h-[50px] w-full" />
+      </div>
+
+      <div className="mt-3 grid grid-cols-3 gap-2">
+        <SkeletonLine className="h-[50px] w-full" />
+        <SkeletonLine className="h-[50px] w-full" />
+        <SkeletonLine className="h-[50px] w-full" />
+      </div>
+    </div>
   );
 }
 
@@ -394,9 +506,6 @@ export function SummaryCard({
             <span className="ml-1 whitespace-nowrap text-xs font-medium tracking-normal text-slate-400">
               {scoreSuffix}
             </span>
-          </p>
-          <p className={`mt-1.5 text-[10px] font-medium uppercase tracking-[0.14em] ${active ? theme.accentText : "text-slate-400"}`}>
-            {active ? "ACTIVE" : "VIEW"}
           </p>
         </div>
       </div>

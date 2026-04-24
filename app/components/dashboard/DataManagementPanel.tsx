@@ -29,7 +29,7 @@ export function DataManagementPanel({
     <section className="glass-panel rounded-[32px] p-5 sm:p-6">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Data</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">데이터</p>
           <h2 className="text-xl font-semibold tracking-[-0.04em] text-slate-950 sm:text-2xl">데이터 관리</h2>
           <p className="mt-1 text-sm text-slate-400">
             날짜별 루틴 기록, 프로필, 커스텀 음식, 즐겨찾기를 한 번에 백업하거나 복원해요.

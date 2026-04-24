@@ -85,6 +85,8 @@ export type NutritionFood = {
   unitLabel: string;
   category: NutritionCategory;
   isCustom: boolean;
+  isArchived?: boolean;
+  archivedAt?: string;
 };
 
 export type RoutineItem = {
@@ -604,6 +606,14 @@ function mapNutritionFoodToRoutineItem(food: NutritionFood): RoutineItem {
 
 export function getNutritionFoods(customFoods: readonly NutritionFood[] = []) {
   return [...defaultNutritionFoods, ...customFoods];
+}
+
+export function getActiveCustomFoods(customFoods: readonly NutritionFood[] = []) {
+  return customFoods.filter((food) => !food.isArchived);
+}
+
+export function getActiveNutritionFoods(customFoods: readonly NutritionFood[] = []) {
+  return getNutritionFoods(getActiveCustomFoods(customFoods));
 }
 
 export function getRoutineSections(customFoods: readonly NutritionFood[] = []) {

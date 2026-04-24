@@ -19,7 +19,7 @@ export function HobbyCard({
     <article className={`glass-panel rounded-[30px] p-4 sm:p-6 ${hobbyStyles.card}`}>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Extra</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">취미</p>
           <h2 className="mt-2 text-[1.35rem] font-semibold tracking-[-0.04em] text-slate-950">취미 보너스</h2>
           <p className="mt-1.5 text-sm text-slate-500">추가 몰입 기록</p>
         </div>
@@ -28,7 +28,7 @@ export function HobbyCard({
             {score}
             <span className="ml-1 whitespace-nowrap text-xs font-medium tracking-normal text-slate-400">/ 8</span>
           </p>
-          <p className="mt-1 text-[11px] uppercase tracking-[0.12em] text-slate-400">extra</p>
+          <p className="mt-1 text-[11px] uppercase tracking-[0.12em] text-slate-400">추가 점수</p>
         </div>
       </div>
 
