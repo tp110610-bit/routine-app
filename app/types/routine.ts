@@ -1,3 +1,7 @@
+import type { UserProfile } from "../lib/dashboard-config";
+
+export type { UserProfile } from "../lib/dashboard-config";
+
 export type NutritionKey =
   | "greekYogurt"
   | "banana"
@@ -128,15 +132,18 @@ export type DailyRoutineLog = {
   scores: RoutineScores;
 };
 
-export const ROUTINE_BACKUP_VERSION = "1.0" as const;
+export const ROUTINE_BACKUP_VERSION = "1.1" as const;
+export const SUPPORTED_ROUTINE_BACKUP_VERSIONS = ["1.0", ROUTINE_BACKUP_VERSION] as const;
 
-export type RoutineBackupVersion = typeof ROUTINE_BACKUP_VERSION;
+export type RoutineBackupVersion = (typeof SUPPORTED_ROUTINE_BACKUP_VERSIONS)[number];
 
 export type RoutineBackupData = {
   version: RoutineBackupVersion;
   exportedAt: string;
   logs: DailyRoutineLog[];
   customFoods: CustomFood[];
+  profile: UserProfile;
+  favoriteFoodIds: string[];
 };
 
 export type RoutineState = Record<string, number | boolean> & Record<ActivityKey, boolean>;

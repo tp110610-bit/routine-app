@@ -698,7 +698,10 @@ export default function Home() {
     const logs = Object.entries(normalizedRecords)
       .sort(([leftDate], [rightDate]) => leftDate.localeCompare(rightDate))
       .map(([date, routine]) => toDailyRoutineLog(routine, date, customFoods));
-    const payload = createRoutineBackupData(logs, normalizeStoredCustomFoods(customFoods));
+    const payload = createRoutineBackupData(logs, normalizeStoredCustomFoods(customFoods), {
+      profile,
+      favoriteFoodIds,
+    });
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
     const downloadUrl = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -757,8 +760,10 @@ export default function Home() {
 
         setCustomFoods(importedCustomFoods);
         setRecords(importedRecords);
-        setFavoriteFoodIds((previous) =>
-          normalizeStoredFavoriteFoodIds(previous, getActiveNutritionFoods(importedCustomFoods)),
+        setProfile(backup.profile);
+        setWeightInput(String(backup.profile.weightKg));
+        setFavoriteFoodIds(
+          normalizeStoredFavoriteFoodIds(backup.favoriteFoodIds, getActiveNutritionFoods(importedCustomFoods)),
         );
         closeFoodForm();
         setNutritionMessage(null);

@@ -1,11 +1,14 @@
 import {
   ROUTINE_BACKUP_VERSION,
+  SUPPORTED_ROUTINE_BACKUP_VERSIONS,
   CustomFood,
   DailyRoutineLog,
   NutritionCategory,
   NutritionFood,
   RoutineBackupData,
+  UserProfile,
 } from "../types/routine";
+import { defaultProfile } from "./dashboard-config";
 
 const NUTRITION_CATEGORIES = [
   "protein",
@@ -30,6 +33,51 @@ function normalizeBoolean(value: unknown, fallback = false) {
 
 function normalizeString(value: unknown, fallback = "") {
   return typeof value === "string" ? value : fallback;
+}
+
+function normalizeProfile(value: unknown): UserProfile {
+  if (!isRecordObject(value)) {
+    return defaultProfile;
+  }
+
+  const heightCm = isFiniteNumber(value.heightCm) && value.heightCm > 0
+    ? Number(value.heightCm.toFixed(1))
+    : defaultProfile.heightCm;
+  const weightKg = isFiniteNumber(value.weightKg) && value.weightKg > 0
+    ? Number(value.weightKg.toFixed(1))
+    : defaultProfile.weightKg;
+
+  return {
+    heightCm,
+    weightKg,
+  };
+}
+
+function normalizeFavoriteFoodIds(value: unknown) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const seen = new Set<string>();
+
+  return value.flatMap((entry) => {
+    if (typeof entry !== "string") {
+      return [];
+    }
+
+    const foodId = entry.trim();
+    if (!foodId || seen.has(foodId)) {
+      return [];
+    }
+
+    seen.add(foodId);
+    return [foodId];
+  });
+}
+
+function isSupportedRoutineBackupVersion(value: unknown): value is RoutineBackupData["version"] {
+  return typeof value === "string" &&
+    SUPPORTED_ROUTINE_BACKUP_VERSIONS.includes(value as RoutineBackupData["version"]);
 }
 
 function isNutritionCategory(value: unknown): value is NutritionCategory {
@@ -144,6 +192,10 @@ function normalizeDailyRoutineLog(value: unknown): DailyRoutineLog | null {
 export function createRoutineBackupData(
   logs: readonly DailyRoutineLog[],
   customFoods: readonly (CustomFood | NutritionFood)[],
+  options: {
+    profile?: unknown;
+    favoriteFoodIds?: unknown;
+  } = {},
 ): RoutineBackupData {
   return {
     version: ROUTINE_BACKUP_VERSION,
@@ -152,6 +204,8 @@ export function createRoutineBackupData(
     customFoods: customFoods
       .map((food) => normalizeCustomFood(food))
       .filter((food): food is CustomFood => Boolean(food)),
+    profile: normalizeProfile(options.profile),
+    favoriteFoodIds: normalizeFavoriteFoodIds(options.favoriteFoodIds),
   };
 }
 
@@ -160,7 +214,7 @@ export function isRoutineBackupData(value: unknown): value is RoutineBackupData 
     return false;
   }
 
-  if (value.version !== ROUTINE_BACKUP_VERSION || typeof value.exportedAt !== "string") {
+  if (!isSupportedRoutineBackupVersion(value.version) || typeof value.exportedAt !== "string") {
     return false;
   }
 
@@ -169,7 +223,9 @@ export function isRoutineBackupData(value: unknown): value is RoutineBackupData 
   }
 
   return value.logs.every((log) => normalizeDailyRoutineLog(log) !== null) &&
-    value.customFoods.every((food) => normalizeCustomFood(food) !== null);
+    value.customFoods.every((food) => normalizeCustomFood(food) !== null) &&
+    (value.profile === undefined || isRecordObject(value.profile)) &&
+    (value.favoriteFoodIds === undefined || Array.isArray(value.favoriteFoodIds));
 }
 
 export function normalizeRoutineBackupData(value: unknown): RoutineBackupData {
@@ -179,6 +235,8 @@ export function normalizeRoutineBackupData(value: unknown): RoutineBackupData {
       exportedAt: new Date().toISOString(),
       logs: [],
       customFoods: [],
+      profile: defaultProfile,
+      favoriteFoodIds: [],
     };
   }
 
@@ -196,5 +254,7 @@ export function normalizeRoutineBackupData(value: unknown): RoutineBackupData {
     exportedAt: typeof value.exportedAt === "string" ? value.exportedAt : new Date().toISOString(),
     logs: normalizedLogs,
     customFoods: normalizedCustomFoods,
+    profile: normalizeProfile(value.profile),
+    favoriteFoodIds: normalizeFavoriteFoodIds(value.favoriteFoodIds),
   };
 }
