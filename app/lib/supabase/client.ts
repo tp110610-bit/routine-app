@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import {
+  getSupabaseInvalidEnvMessage,
   getSupabaseEnvStatus,
   getSupabaseMissingEnvMessage,
 } from "./isSupabaseConfigured";
@@ -25,7 +26,10 @@ export function requireBrowserSupabaseClient(): AppSupabaseClient {
 
   if (!client) {
     const env = getSupabaseEnvStatus();
-    throw new Error(getSupabaseMissingEnvMessage(env.missingKeys));
+    const message = env.missingKeys.length > 0
+      ? getSupabaseMissingEnvMessage(env.missingKeys)
+      : getSupabaseInvalidEnvMessage(env.invalidKeys);
+    throw new Error(message);
   }
 
   return client;

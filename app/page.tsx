@@ -80,6 +80,7 @@ import {
   parseImportedBackup,
 } from "./lib/dashboard-storage";
 import { DashboardHero } from "./components/dashboard/DashboardHero";
+import { AuthStatusPanel } from "./components/dashboard/AuthStatusPanel";
 import { WeeklySummarySection } from "./components/dashboard/WeeklySummarySection";
 import { HistorySection } from "./components/dashboard/HistorySection";
 import { DataManagementPanel } from "./components/dashboard/DataManagementPanel";
@@ -1251,6 +1252,8 @@ export default function Home() {
           priorityTitle={todayPriority.title}
           priorityDetail={todayPriority.detail}
         />
+
+        <AuthStatusPanel />
 
         <section className="glass-panel rounded-[28px] p-4 sm:p-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
