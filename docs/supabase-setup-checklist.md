@@ -35,12 +35,14 @@ Use `docs/supabase-schema.md` for design notes and app mapping. Use `docs/supaba
 
 ## Auth Settings
 
-Use Supabase Auth email login for the current magic link flow.
+Use Supabase Auth email/password login for the current auth flow.
 
-- Keep Email provider support enabled for email-based login.
+- Keep the Email provider enabled for email/password login.
+- Confirm whether email confirmation is enabled for sign-up.
+- If email confirmation is enabled, new users may need to open the confirmation email before password login succeeds.
 - Verify project email delivery settings before production testing.
-- Confirm magic link redirects are allowed for both local and deployed origins.
-- Test with an email account that can receive the project auth email.
+- Confirm sign-up confirmation redirects are allowed for both local and deployed origins.
+- Test with an email account that can receive project auth email.
 
 ## Redirect URLs
 
@@ -83,8 +85,8 @@ Check both the configuration boundary and the login boundary after deployment.
 
 - Confirm the Auth panel shows the intended Supabase unset or configured state.
 - Confirm the configured state exposes the email login form.
-- Request a magic link and verify the auth email arrives.
-- Complete login and confirm the logged-in state is shown.
+- Sign up with email and password and check whether a confirmation email is required.
+- Complete email/password login and confirm the logged-in state is shown.
 - Confirm the manual upload button is visible only when logged in.
 - Confirm the manual download button is visible only when logged in.
 - Confirm existing localStorage routine records remain available before any manual download is approved.

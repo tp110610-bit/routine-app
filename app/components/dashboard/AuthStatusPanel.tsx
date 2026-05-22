@@ -14,6 +14,8 @@ type AuthNotice = {
   text: string;
 };
 
+type AuthAction = "sign-in" | "sign-up" | "sign-out" | null;
+
 function getNoticeClass(tone: AuthNotice["tone"]) {
   if (tone === "success") {
     return "border-slate-200 bg-white/82 text-slate-700";
@@ -26,13 +28,37 @@ function getNoticeClass(tone: AuthNotice["tone"]) {
   return "border-slate-200 bg-white/82 text-slate-600";
 }
 
+function getAuthErrorMessage(errorMessage: string, action: "sign-in" | "sign-up") {
+  const normalizedMessage = errorMessage.toLowerCase();
+
+  if (
+    normalizedMessage.includes("invalid login credentials") ||
+    normalizedMessage.includes("email not confirmed")
+  ) {
+    return action === "sign-in"
+      ? "이메일 또는 비밀번호를 확인해 주세요. 가입 확인 메일이 남아 있다면 먼저 확인해 주세요."
+      : "가입 정보를 확인해 주세요.";
+  }
+
+  if (normalizedMessage.includes("password")) {
+    return "비밀번호를 확인해 주세요. 6자 이상으로 입력해 주세요.";
+  }
+
+  if (normalizedMessage.includes("email")) {
+    return "이메일 주소를 확인해 주세요.";
+  }
+
+  return errorMessage;
+}
+
 export function AuthStatusPanel() {
   const envStatus = getSupabaseEnvStatus();
   const [session, setSession] = useState<Session | null>(null);
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [notice, setNotice] = useState<AuthNotice | null>(null);
   const [isLoadingSession, setIsLoadingSession] = useState(envStatus.isConfigured);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [authAction, setAuthAction] = useState<AuthAction>(null);
 
   useEffect(() => {
     if (!envStatus.isConfigured) {
@@ -71,12 +97,30 @@ export function AuthStatusPanel() {
     };
   }, [envStatus.isConfigured]);
 
-  const handleSendMagicLink = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
+  const getAuthCredentials = () => {
     const trimmedEmail = email.trim();
+
     if (!trimmedEmail) {
       setNotice({ tone: "error", text: "이메일을 입력해 주세요." });
+      return null;
+    }
+
+    if (password.length < 6) {
+      setNotice({ tone: "error", text: "비밀번호를 6자 이상 입력해 주세요." });
+      return null;
+    }
+
+    return {
+      email: trimmedEmail,
+      password,
+    };
+  };
+
+  const handleSignIn = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const credentials = getAuthCredentials();
+    if (!credentials) {
       return;
     }
 
@@ -86,26 +130,60 @@ export function AuthStatusPanel() {
       return;
     }
 
-    setIsSubmitting(true);
+    setAuthAction("sign-in");
     setNotice(null);
 
-    const { error } = await supabase.auth.signInWithOtp({
-      email: trimmedEmail,
+    const { data, error } = await supabase.auth.signInWithPassword(credentials);
+
+    setAuthAction(null);
+
+    if (error) {
+      setNotice({ tone: "error", text: getAuthErrorMessage(error.message, "sign-in") });
+      return;
+    }
+
+    setSession(data.session);
+    setNotice({
+      tone: "success",
+      text: "로그인되었습니다.",
+    });
+  };
+
+  const handleSignUp = async () => {
+    const credentials = getAuthCredentials();
+    if (!credentials) {
+      return;
+    }
+
+    const supabase = createBrowserSupabaseClient();
+    if (!supabase) {
+      setNotice({ tone: "error", text: "Supabase가 설정되어 있지 않습니다." });
+      return;
+    }
+
+    setAuthAction("sign-up");
+    setNotice(null);
+
+    const { data, error } = await supabase.auth.signUp({
+      ...credentials,
       options: {
         emailRedirectTo: typeof window === "undefined" ? undefined : window.location.origin,
       },
     });
 
-    setIsSubmitting(false);
+    setAuthAction(null);
 
     if (error) {
-      setNotice({ tone: "error", text: error.message });
+      setNotice({ tone: "error", text: getAuthErrorMessage(error.message, "sign-up") });
       return;
     }
 
+    setSession(data.session);
     setNotice({
       tone: "success",
-      text: "로그인 링크를 보냈습니다. 이메일에서 링크를 확인해 주세요.",
+      text: data.session
+        ? "회원가입이 완료되어 로그인되었습니다."
+        : "회원가입 요청을 보냈습니다. 가입 확인 메일을 확인해 주세요.",
     });
   };
 
@@ -115,11 +193,11 @@ export function AuthStatusPanel() {
       return;
     }
 
-    setIsSubmitting(true);
+    setAuthAction("sign-out");
     setNotice(null);
 
     const { error } = await supabase.auth.signOut();
-    setIsSubmitting(false);
+    setAuthAction(null);
 
     if (error) {
       setNotice({ tone: "error", text: error.message });
@@ -136,6 +214,7 @@ export function AuthStatusPanel() {
     : envStatus.missingKeys.length > 0
       ? getSupabaseMissingEnvMessage(envStatus.missingKeys)
       : getSupabaseInvalidEnvMessage(envStatus.invalidKeys);
+  const isSubmitting = authAction !== null;
 
   return (
     <section className="glass-panel rounded-[28px] p-4 sm:p-5">
@@ -143,12 +222,12 @@ export function AuthStatusPanel() {
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">Supabase Auth</p>
           <h2 className="mt-1 text-lg font-semibold tracking-[-0.04em] text-slate-950">
-            {isConfigured ? (session ? "로그인됨" : "이메일 로그인") : "Supabase 미설정"}
+            {isConfigured ? (session ? "로그인됨" : "이메일/비밀번호 로그인") : "Supabase 미설정"}
           </h2>
           <p className="mt-1 text-sm text-slate-500">
             {isConfigured
               ? "루틴 데이터는 아직 localStorage에만 저장됩니다."
-              : "환경변수를 설정하면 이메일 로그인 UI를 사용할 수 있습니다."}
+              : "환경변수를 설정하면 이메일/비밀번호 로그인 UI를 사용할 수 있습니다."}
           </p>
         </div>
 
@@ -170,7 +249,7 @@ export function AuthStatusPanel() {
         ) : null}
 
         {isConfigured && !session ? (
-          <form onSubmit={handleSendMagicLink} className="grid gap-2 sm:min-w-[360px] sm:grid-cols-[1fr_auto]">
+          <form onSubmit={handleSignIn} className="grid gap-2 sm:min-w-[420px]">
             <label className="score-pill rounded-[20px] px-4 py-3">
               <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">이메일</span>
               <input
@@ -183,13 +262,36 @@ export function AuthStatusPanel() {
                 className="mt-1.5 w-full bg-transparent text-sm font-medium text-slate-800 outline-none placeholder:text-slate-300"
               />
             </label>
-            <button
-              type="submit"
-              disabled={isSubmitting || isLoadingSession}
-              className="score-pill rounded-[20px] px-4 py-3 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {isSubmitting ? "전송 중" : "로그인 링크 받기"}
-            </button>
+            <label className="score-pill rounded-[20px] px-4 py-3">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">비밀번호</span>
+              <input
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                placeholder="6자 이상"
+                autoComplete="current-password"
+                disabled={isSubmitting || isLoadingSession}
+                className="mt-1.5 w-full bg-transparent text-sm font-medium text-slate-800 outline-none placeholder:text-slate-300"
+              />
+            </label>
+            <p className="px-1 text-xs leading-5 text-slate-400">비밀번호는 6자 이상을 권장합니다.</p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <button
+                type="submit"
+                disabled={isSubmitting || isLoadingSession}
+                className="score-pill min-h-12 rounded-[20px] px-4 py-3 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {authAction === "sign-in" ? "로그인 중" : "로그인"}
+              </button>
+              <button
+                type="button"
+                onClick={handleSignUp}
+                disabled={isSubmitting || isLoadingSession}
+                className="score-pill min-h-12 rounded-[20px] px-4 py-3 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {authAction === "sign-up" ? "가입 중" : "회원가입"}
+              </button>
+            </div>
           </form>
         ) : null}
       </div>
