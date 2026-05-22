@@ -83,8 +83,8 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 
 Check both the configuration boundary and the login boundary after deployment.
 
-- Confirm the Auth panel shows the intended Supabase unset or configured state.
-- Confirm the configured state exposes the email login form.
+- Open the upper-right account menu and confirm it shows the intended Supabase unset or configured state.
+- Open the upper-right account menu and confirm the configured state exposes the email login form.
 - Sign up with email and password and check whether a confirmation email is required.
 - Complete email/password login and confirm the logged-in state is shown.
 - Confirm the manual upload button is visible only when logged in.

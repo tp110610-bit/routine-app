@@ -80,8 +80,7 @@ import {
   parseImportedBackup,
 } from "./lib/dashboard-storage";
 import { DashboardHero } from "./components/dashboard/DashboardHero";
-import { AuthStatusPanel } from "./components/dashboard/AuthStatusPanel";
-import { SupabaseSyncPanel } from "./components/dashboard/SupabaseSyncPanel";
+import { AccountMenu } from "./components/dashboard/AccountMenu";
 import { WeeklySummarySection } from "./components/dashboard/WeeklySummarySection";
 import { HistorySection } from "./components/dashboard/HistorySection";
 import { DataManagementPanel } from "./components/dashboard/DataManagementPanel";
@@ -1242,6 +1241,14 @@ export default function Home() {
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.62),transparent_34%),linear-gradient(180deg,#f7f7f8_0%,#eef1f4_100%)]" />
 
       <div className="mx-auto max-w-[1120px] space-y-5 sm:space-y-6">
+        <AccountMenu
+          records={records}
+          customFoods={customFoods}
+          profile={profile}
+          favoriteFoodIds={favoriteFoodIds}
+          onApplyBackup={applySupabaseBackupToLocalState}
+        />
+
         <DashboardHero
           totalScore={totalScore}
           baseScore={baseScore}
@@ -1265,16 +1272,6 @@ export default function Home() {
           proteinRatio={proteinRatio}
           priorityTitle={todayPriority.title}
           priorityDetail={todayPriority.detail}
-        />
-
-        <AuthStatusPanel />
-
-        <SupabaseSyncPanel
-          records={records}
-          customFoods={customFoods}
-          profile={profile}
-          favoriteFoodIds={favoriteFoodIds}
-          onApplyBackup={applySupabaseBackupToLocalState}
         />
 
         <section className="glass-panel rounded-[28px] p-4 sm:p-5">

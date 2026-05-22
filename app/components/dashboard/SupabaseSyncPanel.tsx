@@ -18,6 +18,7 @@ type SupabaseSyncPanelProps = {
   profile: UserProfile;
   favoriteFoodIds: readonly string[];
   onApplyBackup: (backup: RoutineBackupData) => void;
+  compact?: boolean;
 };
 
 function getLocalSummary(
@@ -38,6 +39,7 @@ export function SupabaseSyncPanel({
   profile,
   favoriteFoodIds,
   onApplyBackup,
+  compact = false,
 }: SupabaseSyncPanelProps) {
   const envStatus = getSupabaseEnvStatus();
   const [session, setSession] = useState<Session | null>(null);
@@ -168,8 +170,14 @@ export function SupabaseSyncPanel({
   };
 
   return (
-    <section className="glass-panel rounded-[28px] p-4 sm:p-5">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+    <section
+      className={
+        compact
+          ? "rounded-[22px] border border-slate-200/80 bg-white/88 p-3.5"
+          : "glass-panel rounded-[28px] p-4 sm:p-5"
+      }
+    >
+      <div className={`flex flex-col gap-4 ${compact ? "" : "lg:flex-row lg:items-end lg:justify-between"}`}>
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">Supabase Sync</p>
           <h2 className="mt-1 text-lg font-semibold tracking-[-0.04em] text-slate-950">수동 백업/불러오기</h2>
@@ -187,7 +195,7 @@ export function SupabaseSyncPanel({
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className={`flex gap-2 ${compact ? "flex-col sm:flex-row" : "flex-wrap"}`}>
           <button
             type="button"
             onClick={handleUpload}

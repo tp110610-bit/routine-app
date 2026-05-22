@@ -51,7 +51,7 @@ function getAuthErrorMessage(errorMessage: string, action: "sign-in" | "sign-up"
   return errorMessage;
 }
 
-export function AuthStatusPanel() {
+export function AuthStatusPanel({ compact = false }: { compact?: boolean }) {
   const envStatus = getSupabaseEnvStatus();
   const [session, setSession] = useState<Session | null>(null);
   const [email, setEmail] = useState("");
@@ -217,8 +217,14 @@ export function AuthStatusPanel() {
   const isSubmitting = authAction !== null;
 
   return (
-    <section className="glass-panel rounded-[28px] p-4 sm:p-5">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+    <section
+      className={
+        compact
+          ? "rounded-[22px] border border-slate-200/80 bg-white/88 p-3.5"
+          : "glass-panel rounded-[28px] p-4 sm:p-5"
+      }
+    >
+      <div className={`flex flex-col gap-4 ${compact ? "" : "lg:flex-row lg:items-center lg:justify-between"}`}>
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">Supabase Auth</p>
           <h2 className="mt-1 text-lg font-semibold tracking-[-0.04em] text-slate-950">
@@ -249,7 +255,7 @@ export function AuthStatusPanel() {
         ) : null}
 
         {isConfigured && !session ? (
-          <form onSubmit={handleSignIn} className="grid gap-2 sm:min-w-[420px]">
+          <form onSubmit={handleSignIn} className={`grid gap-2 ${compact ? "" : "sm:min-w-[420px]"}`}>
             <label className="score-pill rounded-[20px] px-4 py-3">
               <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">이메일</span>
               <input

@@ -4,8 +4,8 @@ This document explains the Supabase schema and app mapping for the routine app.
 
 ## Current Integration State
 
-- Supabase Auth UI is present for email/password sign-up, login, and logout.
-- A manual upload/download UI is present for Supabase backups.
+- The upper-right account menu contains Supabase Auth UI for email/password sign-up, login, and logout.
+- The same account menu contains manual upload/download UI for Supabase backups.
 - Automatic sync, realtime sync, and app-start pull/push are not implemented.
 - `localStorage` remains the app's default storage and source of truth.
 - Routine table reads and writes happen only after the user triggers a manual Supabase backup action.
