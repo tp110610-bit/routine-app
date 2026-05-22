@@ -226,14 +226,16 @@ export function AuthStatusPanel({ compact = false }: { compact?: boolean }) {
     >
       <div className={`flex flex-col gap-4 ${compact ? "" : "lg:flex-row lg:items-center lg:justify-between"}`}>
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">Supabase Auth</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+            {compact ? "로그인" : "Supabase Auth"}
+          </p>
           <h2 className="mt-1 text-lg font-semibold tracking-[-0.04em] text-slate-950">
             {isConfigured ? (session ? "로그인됨" : "이메일/비밀번호 로그인") : "Supabase 미설정"}
           </h2>
           <p className="mt-1 text-sm text-slate-500">
             {isConfigured
-              ? "루틴 데이터는 아직 localStorage에만 저장됩니다."
-              : "환경변수를 설정하면 이메일/비밀번호 로그인 UI를 사용할 수 있습니다."}
+              ? "기록은 이 기기에 저장되고, 로그인하면 클라우드 백업을 사용할 수 있습니다."
+              : "설정이 끝나면 이메일/비밀번호 로그인을 사용할 수 있습니다."}
           </p>
         </div>
 

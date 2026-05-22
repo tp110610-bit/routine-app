@@ -33,23 +33,23 @@ function getAccountLabel(session: Session | null, isConfigured: boolean) {
 
 function getAutoBackupLabel(status: SupabaseAutoBackupStatus) {
   if (status.phase === "off") {
-    return "자동 백업: 꺼짐";
+    return "자동 백업 꺼짐";
   }
 
   if (status.phase === "waiting") {
-    return "자동 백업: 대기 중";
+    return "백업 대기 중";
   }
 
   if (status.phase === "saving") {
-    return "자동 백업: 저장 중";
+    return "백업 중";
   }
 
   if (status.phase === "error") {
-    return "자동 백업: 실패";
+    return "백업 실패";
   }
 
   if (!status.lastSavedAt) {
-    return "자동 백업: 완료";
+    return "백업 완료";
   }
 
   const savedAt = new Intl.DateTimeFormat("ko-KR", {
@@ -57,7 +57,7 @@ function getAutoBackupLabel(status: SupabaseAutoBackupStatus) {
     minute: "2-digit",
   }).format(new Date(status.lastSavedAt));
 
-  return `자동 백업: 완료 · ${savedAt}`;
+  return `백업 완료 · ${savedAt}`;
 }
 
 export function AccountMenu({
@@ -142,18 +142,13 @@ export function AccountMenu({
           <section
             role="dialog"
             aria-modal="true"
-            aria-label="계정과 Supabase 백업 관리"
+            aria-label="계정과 클라우드 백업 관리"
             className="glass-panel absolute inset-x-3 top-3 max-h-[calc(100vh-1.5rem)] overflow-y-auto rounded-[28px] p-4 shadow-[0_32px_90px_-40px_rgba(15,23,42,0.45)] sm:inset-x-auto sm:right-6 sm:top-6 sm:w-[min(34rem,calc(100vw-3rem))] sm:p-5"
           >
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">계정 관리</p>
-                <h2 className="mt-1 text-lg font-semibold tracking-[-0.04em] text-slate-950">
-                  로그인과 수동 백업
-                </h2>
-                <p className="mt-1 text-xs leading-5 text-slate-500">
-                  기본 저장소: 이 기기 localStorage · Supabase는 백업 저장소
-                </p>
+                <h2 className="mt-1 text-lg font-semibold tracking-[-0.04em] text-slate-950">계정과 백업</h2>
               </div>
               <button
                 type="button"
@@ -164,28 +159,46 @@ export function AccountMenu({
               </button>
             </div>
 
-            <div className="mt-3 rounded-[18px] border border-slate-200/80 bg-white/78 px-3.5 py-3">
+            <div className="mt-4 space-y-3">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">계정</p>
+                <div className="mt-2">
+                  <AuthStatusPanel compact />
+                </div>
+              </div>
+
+              <div className="rounded-[18px] border border-slate-200/80 bg-white/78 px-3.5 py-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">저장 상태</p>
+                <p className="mt-2 text-sm font-medium text-slate-700">기본 저장소: 이 기기 저장</p>
+                <p className="mt-1 text-xs leading-5 text-slate-400">클라우드는 로그인한 계정의 백업 저장소입니다.</p>
+              </div>
+
+              <div className="rounded-[18px] border border-slate-200/80 bg-white/78 px-3.5 py-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">클라우드 백업</p>
               <p className={`text-sm font-medium ${autoBackupStatus.phase === "error" ? "text-[#8b5e3c]" : "text-slate-700"}`}>
                 {getAutoBackupLabel(autoBackupStatus)}
               </p>
-              <p className="mt-1 text-xs leading-5 text-slate-400">
-                다른 기기 데이터 불러오기는 아직 수동입니다.
-              </p>
-              {autoBackupStatus.phase === "error" && autoBackupStatus.error ? (
-                <p className="mt-1 text-xs leading-5 text-[#8b5e3c]">{autoBackupStatus.error}</p>
-              ) : null}
-            </div>
+                {autoBackupStatus.phase === "error" && autoBackupStatus.error ? (
+                  <p className="mt-1 text-xs leading-5 text-[#8b5e3c]">{autoBackupStatus.error}</p>
+                ) : null}
+                <div className="mt-3">
+                  <SupabaseSyncPanel
+                    records={records}
+                    customFoods={customFoods}
+                    profile={profile}
+                    favoriteFoodIds={favoriteFoodIds}
+                    onApplyBackup={onApplyBackup}
+                    compact
+                  />
+                </div>
+              </div>
 
-            <div className="mt-4 space-y-3">
-              <AuthStatusPanel compact />
-              <SupabaseSyncPanel
-                records={records}
-                customFoods={customFoods}
-                profile={profile}
-                favoriteFoodIds={favoriteFoodIds}
-                onApplyBackup={onApplyBackup}
-                compact
-              />
+              <div className="rounded-[18px] border border-slate-200/80 bg-white/64 px-3.5 py-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">안내</p>
+                <p className="mt-2 text-xs leading-5 text-slate-500">
+                  다른 기기 백업은 자동으로 불러오지 않습니다. 불러오기를 누르면 이 기기 기록이 바뀔 수 있습니다.
+                </p>
+              </div>
             </div>
           </section>
         </div>

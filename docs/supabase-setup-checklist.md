@@ -4,6 +4,8 @@ This checklist covers the Supabase and Vercel steps needed to operate the routin
 
 The app is still `localStorage`-first. Signed-in local changes are automatically backed up to Supabase, and the account menu still provides manual backup and download controls. Automatic download, bidirectional sync, realtime sync, and app-start pull/push do not exist.
 
+The product UI calls this feature `cloud backup` for users. This checklist keeps the Supabase name when describing dashboard setup and implementation details.
+
 ## Prerequisites
 
 - Confirm the current app build and local JSON export/import flow work before enabling Supabase.

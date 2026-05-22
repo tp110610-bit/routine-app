@@ -11,6 +11,7 @@ This document explains the Supabase schema and app mapping for the routine app.
 - `localStorage` remains the app's default storage and source of truth.
 - Supabase upload may run automatically after local changes or when the user triggers manual backup.
 - Supabase download still happens only after the user triggers manual restore.
+- User-facing UI labels call this surface `cloud backup`; these docs keep the Supabase implementation name.
 
 ## Document Roles
 
