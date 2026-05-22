@@ -65,20 +65,16 @@ import {
   generateCustomFoodId,
 } from "./lib/dashboard-helpers";
 import {
-  CUSTOM_FOODS_STORAGE_KEY,
-  DETAIL_STORAGE_KEY,
-  FAVORITE_FOODS_STORAGE_KEY,
-  PROFILE_STORAGE_KEY,
-  STORAGE_KEY,
-  loadStoredCustomFoods,
-  loadStoredFavoriteFoodIds,
-  loadStoredProfile,
-  loadStoredRecords,
   normalizeStoredCustomFoods,
   normalizeStoredFavoriteFoodIds,
   normalizeStoredRecords,
   parseImportedBackup,
 } from "./lib/dashboard-storage";
+import {
+  clearRoutineLocalData,
+  loadRoutineLocalData,
+  saveRoutineLocalData,
+} from "./lib/routineLocalStorage";
 import { useSupabaseAutoBackup } from "./hooks/useSupabaseAutoBackup";
 import { DashboardHero } from "./components/dashboard/DashboardHero";
 import { AccountMenu } from "./components/dashboard/AccountMenu";
@@ -96,7 +92,6 @@ import {
 } from "./components/dashboard/Primitives";
 import type { RoutineBackupData } from "./types/routine";
 
-const WEEKLY_SUMMARY_STORAGE_KEY = "routine-weekly-summary-open";
 const QUICK_ADD_FOOD_LIMIT = 12;
 
 function isRecordObject(value: unknown): value is Record<string, unknown> {
@@ -178,28 +173,23 @@ export default function Home() {
   });
 
   useEffect(() => {
-    const storedCustomFoods = loadStoredCustomFoods();
-    const storedProfile = loadStoredProfile();
+    const localData = loadRoutineLocalData();
 
-    setCustomFoods(storedCustomFoods);
-    setRecords(loadStoredRecords(storedCustomFoods));
-    setProfile(storedProfile);
-    setWeightInput(String(storedProfile.weightKg));
-    setFavoriteFoodIds(loadStoredFavoriteFoodIds(getActiveCustomFoods(storedCustomFoods)));
+    setCustomFoods(localData.customFoods);
+    setRecords(localData.records);
+    setProfile(localData.profile);
+    setWeightInput(String(localData.profile.weightKg));
+    setFavoriteFoodIds(localData.favoriteFoodIds);
     setSelectedDate(getTodayString());
 
-    if (typeof window !== "undefined") {
-      const savedDetail = window.localStorage.getItem(DETAIL_STORAGE_KEY);
-      if (savedDetail && isDetailSectionId(savedDetail)) {
-        startTransition(() => {
-          setActiveDetail(savedDetail);
-        });
-      }
+    if (localData.activeDetail && isDetailSectionId(localData.activeDetail)) {
+      startTransition(() => {
+        setActiveDetail(localData.activeDetail as DetailSectionId);
+      });
+    }
 
-      const savedWeeklySummaryState = window.localStorage.getItem(WEEKLY_SUMMARY_STORAGE_KEY);
-      if (savedWeeklySummaryState === "true") {
-        setIsWeeklySummaryOpen(true);
-      }
+    if (localData.isWeeklySummaryOpen) {
+      setIsWeeklySummaryOpen(true);
     }
 
     setHasHydrated(true);
@@ -210,7 +200,7 @@ export default function Home() {
       return;
     }
 
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+    saveRoutineLocalData({ records });
   }, [hasHydrated, records]);
 
   useEffect(() => {
@@ -218,7 +208,7 @@ export default function Home() {
       return;
     }
 
-    window.localStorage.setItem(CUSTOM_FOODS_STORAGE_KEY, JSON.stringify(customFoods));
+    saveRoutineLocalData({ customFoods });
   }, [customFoods, hasHydrated]);
 
   useEffect(() => {
@@ -226,7 +216,7 @@ export default function Home() {
       return;
     }
 
-    window.localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profile));
+    saveRoutineLocalData({ profile });
   }, [hasHydrated, profile]);
 
   useEffect(() => {
@@ -234,7 +224,7 @@ export default function Home() {
       return;
     }
 
-    window.localStorage.setItem(FAVORITE_FOODS_STORAGE_KEY, JSON.stringify(favoriteFoodIds));
+    saveRoutineLocalData({ favoriteFoodIds });
   }, [favoriteFoodIds, hasHydrated]);
 
   useEffect(() => {
@@ -242,7 +232,7 @@ export default function Home() {
       return;
     }
 
-    window.localStorage.setItem(DETAIL_STORAGE_KEY, activeDetail);
+    saveRoutineLocalData({ activeDetail });
   }, [activeDetail, hasHydrated]);
 
   useEffect(() => {
@@ -250,7 +240,7 @@ export default function Home() {
       return;
     }
 
-    window.localStorage.setItem(WEEKLY_SUMMARY_STORAGE_KEY, String(isWeeklySummaryOpen));
+    saveRoutineLocalData({ isWeeklySummaryOpen });
   }, [hasHydrated, isWeeklySummaryOpen]);
 
   const activeCustomFoods = useMemo(() => getActiveCustomFoods(customFoods), [customFoods]);
@@ -854,12 +844,7 @@ export default function Home() {
       return;
     }
 
-    if (typeof window !== "undefined") {
-      window.localStorage.removeItem(STORAGE_KEY);
-      window.localStorage.removeItem(CUSTOM_FOODS_STORAGE_KEY);
-      window.localStorage.removeItem(PROFILE_STORAGE_KEY);
-      window.localStorage.removeItem(FAVORITE_FOODS_STORAGE_KEY);
-    }
+    clearRoutineLocalData();
 
     setRecords({});
     setCustomFoods([]);
