@@ -1,6 +1,20 @@
 # Supabase Schema Draft
 
-This document is a pre-integration schema draft for the routine app. It does not require Supabase SDK setup, environment variables, auth UI, or any application code changes.
+This document explains the Supabase schema and app mapping for the routine app.
+
+## Current Integration State
+
+- Supabase Auth UI is present for email login and logout.
+- A manual upload/download UI is present for Supabase backups.
+- Automatic sync, realtime sync, and app-start pull/push are not implemented.
+- `localStorage` remains the app's default storage and source of truth.
+- Routine table reads and writes happen only after the user triggers a manual Supabase backup action.
+
+## Document Roles
+
+- `docs/supabase-schema.md` is the design and explanation document for tables, mapping, and integration boundaries.
+- `docs/supabase-migration.sql` is the SQL file intended for the Supabase SQL Editor.
+- Treat the SQL block in this document as design context. Use the migration file when applying the current MVP schema.
 
 ## Design Goals
 
@@ -165,6 +179,8 @@ Alternative:
 The database schema should not depend on backup file metadata. Backup versioning remains a client-side import/export concern.
 
 ## SQL Draft
+
+This draft keeps the schema discussion close to the design notes. For an executable, rerunnable SQL Editor script, use `docs/supabase-migration.sql`.
 
 ```sql
 -- Required for gen_random_uuid().
@@ -353,11 +369,12 @@ for delete
 using (user_id = auth.uid());
 ```
 
-## Integration Notes For Later
+## Integration Notes
 
 - Use `upsert` for `routine_logs` with conflict target `(user_id, date)`.
 - Use `upsert` for `custom_foods` with conflict target `(user_id, food_key)`.
 - Use `upsert` for `user_profiles` and `user_preferences` with conflict target `user_id`.
+- Keep sync manual unless the storage ownership model changes beyond the local-first MVP.
 - Keep local import/export normalization as the boundary for legacy backup compatibility.
 - Before production use, test RLS with at least two auth users to confirm cross-user isolation.
 

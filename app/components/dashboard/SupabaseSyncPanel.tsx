@@ -89,7 +89,7 @@ export function SupabaseSyncPanel({
 
   const handleUpload = async () => {
     const shouldUpload = window.confirm(
-      "현재 이 기기의 로컬 루틴 데이터를 Supabase에 백업합니다. 같은 날짜의 Supabase 기록과 같은 food key의 커스텀 음식은 로컬 값으로 갱신됩니다. 계속할까요?",
+      "현재 이 기기의 로컬 루틴 데이터를 Supabase에 백업합니다. 같은 날짜의 Supabase 기록과 같은 food key의 커스텀 음식은 현재 기기의 로컬 값으로 갱신될 수 있습니다. 계속할까요?",
     );
 
     if (!shouldUpload) {
@@ -145,7 +145,7 @@ export function SupabaseSyncPanel({
     }
 
     const shouldApply = window.confirm(
-      `Supabase 백업 데이터를 이 기기에 불러옵니다. 현재 localStorage의 루틴 기록, 커스텀 음식, 프로필, 즐겨찾기가 Supabase 데이터로 교체됩니다. 계속할까요?\n\nSupabase 데이터: 기록 ${result.counts.logs}일, 커스텀 음식 ${result.counts.customFoods}개, 즐겨찾기 ${result.counts.favoriteFoodIds}개`,
+      `Supabase 백업 데이터를 이 기기에 불러옵니다. 백업은 일부 데이터만 담고 있을 수 있고, 승인하면 현재 localStorage의 루틴 기록, 커스텀 음식, 프로필, 즐겨찾기가 Supabase 데이터로 교체됩니다. 계속할까요?\n\nSupabase 데이터: 기록 ${result.counts.logs}일, 커스텀 음식 ${result.counts.customFoods}개, 즐겨찾기 ${result.counts.favoriteFoodIds}개`,
     );
 
     if (!shouldApply) {
@@ -177,6 +177,10 @@ export function SupabaseSyncPanel({
             자동 동기화가 아닙니다. 버튼을 누를 때만 이 기기의 localStorage 데이터와 Supabase 백업 저장소를
             주고받습니다.
           </p>
+          <p className="mt-2 max-w-2xl text-xs leading-5 text-slate-400">
+            백업은 같은 날짜 기록과 같은 food key를 현재 기기 값으로 갱신할 수 있습니다. 불러오기는 부분 백업일 수
+            있으며 승인 시 현재 로컬 기록을 대체할 수 있습니다.
+          </p>
           <p className="mt-2 text-xs text-slate-400">
             현재 로컬: 기록 {localSummary.recordCount}일 · 커스텀 음식 {localSummary.customFoodCount}개 · 즐겨찾기{" "}
             {localSummary.favoriteFoodCount}개
@@ -190,7 +194,7 @@ export function SupabaseSyncPanel({
             disabled={isDisabled}
             className="score-pill rounded-full px-3.5 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isWorking ? "처리 중" : "로컬 데이터를 Supabase에 백업"}
+            {isWorking ? "처리 중" : "현재 로컬 데이터를 Supabase에 백업"}
           </button>
           <button
             type="button"
@@ -198,7 +202,7 @@ export function SupabaseSyncPanel({
             disabled={isDisabled}
             className="score-pill rounded-full px-3.5 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isWorking ? "처리 중" : "Supabase 데이터를 이 기기로 불러오기"}
+            {isWorking ? "처리 중" : "Supabase 백업을 이 기기로 불러오기"}
           </button>
         </div>
       </div>

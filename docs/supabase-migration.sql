@@ -1,6 +1,7 @@
 -- Supabase migration draft for the routine app MVP.
 -- Paste this whole file into the Supabase SQL Editor and run it once per project.
--- The app still uses localStorage until auth and sync are implemented separately.
+-- docs/supabase-schema.md explains the design; this file is the SQL Editor script.
+-- The app remains localStorage-first and only manual Supabase backup actions use these tables.
 
 create extension if not exists pgcrypto;
 
