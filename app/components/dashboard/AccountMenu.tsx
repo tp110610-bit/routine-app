@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import type { DailyRecords, NutritionFood, RoutineBackupData, UserProfile } from "../../types/routine";
+import type { SupabaseAutoBackupStatus } from "../../hooks/useSupabaseAutoBackup";
 import { createBrowserSupabaseClient } from "../../lib/supabase/client";
 import { getSupabaseEnvStatus } from "../../lib/supabase/isSupabaseConfigured";
 import { AuthStatusPanel } from "./AuthStatusPanel";
@@ -13,6 +14,7 @@ type AccountMenuProps = {
   customFoods: readonly NutritionFood[];
   profile: UserProfile;
   favoriteFoodIds: readonly string[];
+  autoBackupStatus: SupabaseAutoBackupStatus;
   onApplyBackup: (backup: RoutineBackupData) => void;
 };
 
@@ -29,11 +31,41 @@ function getAccountLabel(session: Session | null, isConfigured: boolean) {
   return emailPrefix || "계정";
 }
 
+function getAutoBackupLabel(status: SupabaseAutoBackupStatus) {
+  if (status.phase === "off") {
+    return "자동 백업: 꺼짐";
+  }
+
+  if (status.phase === "waiting") {
+    return "자동 백업: 대기 중";
+  }
+
+  if (status.phase === "saving") {
+    return "자동 백업: 저장 중";
+  }
+
+  if (status.phase === "error") {
+    return "자동 백업: 실패";
+  }
+
+  if (!status.lastSavedAt) {
+    return "자동 백업: 완료";
+  }
+
+  const savedAt = new Intl.DateTimeFormat("ko-KR", {
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(status.lastSavedAt));
+
+  return `자동 백업: 완료 · ${savedAt}`;
+}
+
 export function AccountMenu({
   records,
   customFoods,
   profile,
   favoriteFoodIds,
+  autoBackupStatus,
   onApplyBackup,
 }: AccountMenuProps) {
   const envStatus = getSupabaseEnvStatus();
@@ -120,7 +152,7 @@ export function AccountMenu({
                   로그인과 수동 백업
                 </h2>
                 <p className="mt-1 text-xs leading-5 text-slate-500">
-                  기본 저장소: 이 기기 localStorage · Supabase 백업은 수동 실행
+                  기본 저장소: 이 기기 localStorage · Supabase는 백업 저장소
                 </p>
               </div>
               <button
@@ -130,6 +162,18 @@ export function AccountMenu({
               >
                 닫기
               </button>
+            </div>
+
+            <div className="mt-3 rounded-[18px] border border-slate-200/80 bg-white/78 px-3.5 py-3">
+              <p className={`text-sm font-medium ${autoBackupStatus.phase === "error" ? "text-[#8b5e3c]" : "text-slate-700"}`}>
+                {getAutoBackupLabel(autoBackupStatus)}
+              </p>
+              <p className="mt-1 text-xs leading-5 text-slate-400">
+                다른 기기 데이터 불러오기는 아직 수동입니다.
+              </p>
+              {autoBackupStatus.phase === "error" && autoBackupStatus.error ? (
+                <p className="mt-1 text-xs leading-5 text-[#8b5e3c]">{autoBackupStatus.error}</p>
+              ) : null}
             </div>
 
             <div className="mt-4 space-y-3">

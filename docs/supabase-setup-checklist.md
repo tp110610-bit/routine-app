@@ -1,8 +1,8 @@
 # Supabase Setup Checklist
 
-This checklist covers the Supabase and Vercel steps needed to operate the routine app's current manual backup flow.
+This checklist covers the Supabase and Vercel steps needed to operate the routine app's current Supabase backup flow.
 
-The app is still `localStorage`-first. Supabase Auth and manual upload/download UI exist, but automatic sync, realtime sync, and app-start pull/push do not.
+The app is still `localStorage`-first. Signed-in local changes are automatically backed up to Supabase, and the account menu still provides manual backup and download controls. Automatic download, bidirectional sync, realtime sync, and app-start pull/push do not exist.
 
 ## Prerequisites
 
@@ -89,6 +89,7 @@ Check both the configuration boundary and the login boundary after deployment.
 - Complete email/password login and confirm the logged-in state is shown.
 - Confirm the manual upload button is visible only when logged in.
 - Confirm the manual download button is visible only when logged in.
+- Change local routine data while logged in and confirm the account menu reports automatic backup progress.
 - Confirm existing localStorage routine records remain available before any manual download is approved.
 
 ## Manual Sync Test Scenarios
@@ -106,7 +107,7 @@ Run these scenarios deliberately and keep local JSON backups while testing.
 
 - Supabase download can replace this device's local routine records after user confirmation.
 - Export a JSON backup before destructive download tests.
-- Manual sync does not resolve device conflicts automatically. Choose which device uploads the authoritative local state.
+- Automatic backup and manual upload do not resolve device conflicts automatically. Choose which device uploads the authoritative local state.
 - Upload can update Supabase rows that share the same routine date or custom food key.
 - Download can be a partial backup. Read the summary and confirmation prompt before applying it.
 - If auth or sync testing behaves unexpectedly, stop before approving another download and inspect the browser console, Vercel deployment logs, and Supabase Auth or database logs.

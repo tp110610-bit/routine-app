@@ -182,8 +182,8 @@ export function SupabaseSyncPanel({
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">Supabase Sync</p>
           <h2 className="mt-1 text-lg font-semibold tracking-[-0.04em] text-slate-950">수동 백업/불러오기</h2>
           <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">
-            자동 동기화가 아닙니다. 버튼을 누를 때만 이 기기의 localStorage 데이터와 Supabase 백업 저장소를
-            주고받습니다.
+            이 기기의 로컬 변경은 로그인 상태에서 자동 백업될 수 있습니다. Supabase 백업을 이 기기로 불러오기는
+            버튼으로만 실행합니다.
           </p>
           <p className="mt-2 max-w-2xl text-xs leading-5 text-slate-400">
             백업은 같은 날짜 기록과 같은 food key를 현재 기기 값으로 갱신할 수 있습니다. 불러오기는 부분 백업일 수

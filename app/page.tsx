@@ -79,6 +79,7 @@ import {
   normalizeStoredRecords,
   parseImportedBackup,
 } from "./lib/dashboard-storage";
+import { useSupabaseAutoBackup } from "./hooks/useSupabaseAutoBackup";
 import { DashboardHero } from "./components/dashboard/DashboardHero";
 import { AccountMenu } from "./components/dashboard/AccountMenu";
 import { WeeklySummarySection } from "./components/dashboard/WeeklySummarySection";
@@ -168,6 +169,13 @@ export default function Home() {
   const importFileInputRef = useRef<HTMLInputElement | null>(null);
   const weeklySummarySectionRef = useRef<HTMLDivElement | null>(null);
   const detailSectionRef = useRef<HTMLElement | null>(null);
+  const autoBackupStatus = useSupabaseAutoBackup({
+    hasHydrated,
+    records,
+    customFoods,
+    profile,
+    favoriteFoodIds,
+  });
 
   useEffect(() => {
     const storedCustomFoods = loadStoredCustomFoods();
@@ -1246,6 +1254,7 @@ export default function Home() {
           customFoods={customFoods}
           profile={profile}
           favoriteFoodIds={favoriteFoodIds}
+          autoBackupStatus={autoBackupStatus}
           onApplyBackup={applySupabaseBackupToLocalState}
         />
 

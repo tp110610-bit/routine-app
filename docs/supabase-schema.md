@@ -6,9 +6,11 @@ This document explains the Supabase schema and app mapping for the routine app.
 
 - The upper-right account menu contains Supabase Auth UI for email/password sign-up, login, and logout.
 - The same account menu contains manual upload/download UI for Supabase backups.
-- Automatic sync, realtime sync, and app-start pull/push are not implemented.
+- Signed-in local changes are automatically backed up to Supabase after a short delay.
+- Automatic download, bidirectional sync, realtime sync, and app-start pull/push are not implemented.
 - `localStorage` remains the app's default storage and source of truth.
-- Routine table reads and writes happen only after the user triggers a manual Supabase backup action.
+- Supabase upload may run automatically after local changes or when the user triggers manual backup.
+- Supabase download still happens only after the user triggers manual restore.
 
 ## Document Roles
 
