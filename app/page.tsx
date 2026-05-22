@@ -31,12 +31,6 @@ import {
   getTodayString,
   normalizeRoutineState,
 } from "./routineData";
-import { fromDailyRoutineLog, toDailyRoutineLog } from "./lib/routineMappers";
-import {
-  createRoutineBackupData,
-  isRoutineBackupData,
-  normalizeRoutineBackupData,
-} from "./lib/routineStorageFormat";
 import {
   FoodFormState,
   HYDRATION_SAFE_DATE,
@@ -65,16 +59,17 @@ import {
   generateCustomFoodId,
 } from "./lib/dashboard-helpers";
 import {
-  normalizeStoredCustomFoods,
-  normalizeStoredFavoriteFoodIds,
-  normalizeStoredRecords,
-  parseImportedBackup,
-} from "./lib/dashboard-storage";
-import {
   clearRoutineLocalData,
   loadRoutineLocalData,
   saveRoutineLocalData,
 } from "./lib/routineLocalStorage";
+import { normalizeStoredFavoriteFoodIds, normalizeStoredRecords } from "./lib/dashboard-storage";
+import {
+  convertRoutineBackupToLocalData,
+  createRoutineExportFilename,
+  createRoutineExportPayload,
+  parseRoutineImportPayload,
+} from "./lib/routineExportImport";
 import { useSupabaseAutoBackup } from "./hooks/useSupabaseAutoBackup";
 import { DashboardHero } from "./components/dashboard/DashboardHero";
 import { AccountMenu } from "./components/dashboard/AccountMenu";
@@ -93,40 +88,6 @@ import {
 import type { RoutineBackupData } from "./types/routine";
 
 const QUICK_ADD_FOOD_LIMIT = 12;
-
-function isRecordObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function isRoutineBackupCandidate(value: unknown) {
-  return isRecordObject(value) && (isRoutineBackupData(value) || Array.isArray(value.logs));
-}
-
-function mapBackupCustomFoodsToNutritionFoods(customFoods: RoutineBackupData["customFoods"]) {
-  return normalizeStoredCustomFoods(
-    customFoods.map((food) => ({
-      id: food.id,
-      label: food.label,
-      proteinGrams: food.proteinGrams,
-      unitLabel: food.unitLabel,
-      category: food.category,
-      isCustom: true,
-      isArchived: food.archived,
-      archivedAt: food.archivedAt,
-    })),
-  );
-}
-
-function mapRoutineBackupToRecords(backup: RoutineBackupData, customFoods: readonly NutritionFood[]) {
-  return backup.logs.reduce<DailyRecords>((nextRecords, log) => {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(log.date)) {
-      return nextRecords;
-    }
-
-    nextRecords[log.date] = fromDailyRoutineLog(log, customFoods);
-    return nextRecords;
-  }, {});
-}
 
 function copyNutritionQuantities(
   targetRoutine: RoutineState,
@@ -693,11 +654,9 @@ export default function Home() {
   const exportAllData = () => {
     const exportRecordCount = Object.keys(records).length;
     const isMostlyEmpty = exportRecordCount === 0 && customFoods.length === 0 && favoriteFoodIds.length === 0;
-    const normalizedRecords = normalizeStoredRecords(records, customFoods);
-    const logs = Object.entries(normalizedRecords)
-      .sort(([leftDate], [rightDate]) => leftDate.localeCompare(rightDate))
-      .map(([date, routine]) => toDailyRoutineLog(routine, date, customFoods));
-    const payload = createRoutineBackupData(logs, normalizeStoredCustomFoods(customFoods), {
+    const payload = createRoutineExportPayload({
+      records,
+      customFoods,
       profile,
       favoriteFoodIds,
     });
@@ -707,7 +666,7 @@ export default function Home() {
     const fileDate = getTodayString();
 
     link.href = downloadUrl;
-    link.download = `routine-backup-${fileDate}.json`;
+    link.download = createRoutineExportFilename(fileDate);
     link.click();
     URL.revokeObjectURL(downloadUrl);
 
@@ -739,53 +698,18 @@ export default function Home() {
 
       const rawText = await file.text();
       const parsed = JSON.parse(rawText) as unknown;
-
-      if (isRoutineBackupCandidate(parsed)) {
-        const backup = normalizeRoutineBackupData(parsed);
-        const importedCustomFoods = mapBackupCustomFoodsToNutritionFoods(backup.customFoods);
-        const importedRecords = mapRoutineBackupToRecords(backup, importedCustomFoods);
-        const importedRecordCount = Object.keys(importedRecords).length;
-        const shouldImport = window.confirm(
-          `현재 루틴 기록을 이 백업으로 교체할까요?\n기록 ${importedRecordCount}일, 커스텀 음식 ${importedCustomFoods.length}개를 불러옵니다.`,
-        );
-
-        if (!shouldImport) {
-          setDataManagementMessage({
-            tone: "neutral",
-            text: "데이터 불러오기를 취소했습니다.",
-          });
-          return;
-        }
-
-        setCustomFoods(importedCustomFoods);
-        setRecords(importedRecords);
-        setProfile(backup.profile);
-        setWeightInput(String(backup.profile.weightKg));
-        setFavoriteFoodIds(
-          normalizeStoredFavoriteFoodIds(backup.favoriteFoodIds, getActiveNutritionFoods(importedCustomFoods)),
-        );
-        closeFoodForm();
-        setNutritionMessage(null);
-        setDataManagementMessage({
-          tone: "success",
-          text:
-            importedRecordCount > 0
-              ? `${importedRecordCount}일치 데이터를 불러왔습니다.`
-              : "데이터를 불러왔습니다. 기록은 아직 없습니다.",
-        });
-        return;
-      }
-
-      const result = parseImportedBackup(parsed);
+      const result = parseRoutineImportPayload(parsed);
 
       if (!result.ok) {
-        setDataManagementMessage({ tone: "error", text: result.error });
+        setDataManagementMessage({ tone: "error", text: result.message });
         return;
       }
 
       const importedRecordCount = Object.keys(result.data.records).length;
       const shouldImport = window.confirm(
-        `현재 데이터를 이 파일로 교체할까요?\n기록 ${importedRecordCount}일, 커스텀 음식 ${result.data.customFoods.length}개를 불러옵니다.`,
+        result.source === "routine-backup"
+          ? `현재 루틴 기록을 이 백업으로 교체할까요?\n기록 ${importedRecordCount}일, 커스텀 음식 ${result.data.customFoods.length}개를 불러옵니다.`
+          : `현재 데이터를 이 파일로 교체할까요?\n기록 ${importedRecordCount}일, 커스텀 음식 ${result.data.customFoods.length}개를 불러옵니다.`,
       );
 
       if (!shouldImport) {
@@ -800,7 +724,7 @@ export default function Home() {
       setRecords(result.data.records);
       setProfile(result.data.profile);
       setWeightInput(String(result.data.profile.weightKg));
-      setFavoriteFoodIds(normalizeStoredFavoriteFoodIds(result.data.favoriteFoodIds, getActiveNutritionFoods(result.data.customFoods)));
+      setFavoriteFoodIds(result.data.favoriteFoodIds);
       closeFoodForm();
       setNutritionMessage(null);
       setDataManagementMessage({
@@ -908,11 +832,10 @@ export default function Home() {
   };
 
   const applySupabaseBackupToLocalState = (backup: RoutineBackupData) => {
-    const importedCustomFoods = mapBackupCustomFoodsToNutritionFoods(backup.customFoods);
-    const importedRecords = mapRoutineBackupToRecords(backup, importedCustomFoods);
+    const localData = convertRoutineBackupToLocalData(backup);
 
-    setCustomFoods(importedCustomFoods);
-    setRecords(importedRecords);
+    setCustomFoods(localData.customFoods);
+    setRecords(localData.records);
     setProfile(backup.profile);
     setWeightInput(String(backup.profile.weightKg));
     setFavoriteFoodIds(backup.favoriteFoodIds);
